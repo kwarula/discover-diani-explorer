@@ -1,96 +1,20 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, CloudSun, Compass, Map, Coffee, Hotel } from 'lucide-react';
+import { Calendar, CloudSun, Compass, Map, Coffee, Hotel, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-// Mock weather data
-const weatherData = {
-  current: {
-    temp: 28,
-    condition: 'Sunny',
-    icon: CloudSun,
-    wind: '12 km/h',
-    humidity: '68%'
-  },
-  forecast: [
-    { day: 'Mon', temp: 29, condition: 'Sunny' },
-    { day: 'Tue', temp: 27, condition: 'Partly cloudy' },
-    { day: 'Wed', temp: 28, condition: 'Sunny' },
-    { day: 'Thu', temp: 26, condition: 'Scattered showers' },
-    { day: 'Fri', temp: 27, condition: 'Sunny' },
-  ]
-};
-
-// Mock recommendations
-const recommendations = {
-  activities: [
-    { 
-      id: 1,
-      title: 'Snorkeling at Chale Island Reef',
-      category: 'Water Sports',
-      image: 'https://images.unsplash.com/photo-1532649538693-f3a2ec1bf8bd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      rating: 4.8
-    },
-    { 
-      id: 2,
-      title: 'Colobus Monkey Safari',
-      category: 'Wildlife',
-      image: 'https://images.unsplash.com/photo-1594128597047-ab2801b1e6bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80',
-      rating: 4.9
-    },
-    { 
-      id: 3,
-      title: 'Sunset Beach Yoga',
-      category: 'Wellness',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1099&q=80',
-      rating: 4.7
-    }
-  ],
-  dining: [
-    { 
-      id: 1,
-      title: 'Ali Barbour\'s Cave Restaurant',
-      category: 'Fine Dining',
-      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      rating: 4.9
-    },
-    { 
-      id: 2,
-      title: 'Nomad Beach Bar & Restaurant',
-      category: 'Seafood',
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      rating: 4.7
-    }
-  ],
-  accommodation: [
-    { 
-      id: 1,
-      title: 'Baobab Beach Resort & Spa',
-      category: 'Resort',
-      image: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2049&q=80',
-      rating: 4.8
-    },
-    { 
-      id: 2,
-      title: 'Waterlovers Beach Resort',
-      category: 'Boutique Hotel',
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      rating: 4.9
-    }
-  ]
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { useListings } from '@/hooks/useListings';
 
 const Dashboard = () => {
-  const [user] = useState({
-    name: 'Alex',
-    tripDuration: '5 days',
-    interests: ['Water Sports', 'Local Cuisine', 'Wildlife']
-  });
+  const { profile } = useAuth();
+  const { data: activities, isLoading: activitiesLoading } = useListings('activity', 3);
+  const { data: dining, isLoading: diningLoading } = useListings('service', 2);
+  const { data: accommodation, isLoading: accommodationLoading } = useListings('real_estate', 2);
 
   // Get current time and date
   const now = new Date();
@@ -106,10 +30,28 @@ const Dashboard = () => {
     day: 'numeric'
   });
 
+  // Mock weather data - would be replaced with real API
+  const weatherData = {
+    current: {
+      temp: 28,
+      condition: 'Sunny',
+      icon: CloudSun,
+      wind: '12 km/h',
+      humidity: '68%'
+    },
+    forecast: [
+      { day: 'Mon', temp: 29, condition: 'Sunny' },
+      { day: 'Tue', temp: 27, condition: 'Partly cloudy' },
+      { day: 'Wed', temp: 28, condition: 'Sunny' },
+      { day: 'Thu', temp: 26, condition: 'Scattered showers' },
+      { day: 'Fri', temp: 27, condition: 'Sunny' },
+    ]
+  };
+
   const RecommendationCard = ({ item }: { item: any }) => (
     <div className="relative rounded-lg overflow-hidden group hover:shadow-lg transition-shadow duration-300">
       <img 
-        src={item.image} 
+        src={item.images?.[0] || "https://images.unsplash.com/photo-1532649538693-f3a2ec1bf8bd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"} 
         alt={item.title} 
         className="h-48 w-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
@@ -117,7 +59,7 @@ const Dashboard = () => {
         <h3 className="text-white font-medium">{item.title}</h3>
         <div className="flex justify-between items-center mt-1">
           <Badge variant="outline" className="text-white border-white/50 bg-white/10">
-            {item.category}
+            {item.sub_category || item.category}
           </Badge>
           <div className="flex items-center text-yellow-400">
             <svg 
@@ -128,11 +70,15 @@ const Dashboard = () => {
             >
               <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
             </svg>
-            <span className="text-white text-sm">{item.rating}</span>
+            <span className="text-white text-sm">{item.rating.toFixed(1)}</span>
           </div>
         </div>
       </div>
     </div>
+  );
+
+  const LoadingCard = () => (
+    <div className="rounded-lg overflow-hidden bg-gray-100 animate-pulse h-48"></div>
   );
 
   return (
@@ -146,7 +92,7 @@ const Dashboard = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div>
                 <h1 className="text-2xl md:text-3xl font-display font-bold mb-2">
-                  Welcome back, {user.name}!
+                  Welcome back, {profile?.full_name || 'Friend'}!
                 </h1>
                 <p className="text-white/80">
                   {currentDate} • {currentTime}
@@ -183,7 +129,7 @@ const Dashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-ocean-dark">{user.tripDuration}</p>
+                  <p className="text-3xl font-bold text-ocean-dark">{profile?.stay_duration || '?'} days</p>
                   <p className="text-gray-500 text-sm">Remaining in Diani</p>
                 </CardContent>
               </Card>
@@ -197,11 +143,15 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {user.interests.map((interest, i) => (
-                      <Badge key={i} className="bg-coral/10 text-coral hover:bg-coral/20 border-none">
-                        {interest}
-                      </Badge>
-                    ))}
+                    {profile?.interests && profile.interests.length > 0 ? (
+                      profile.interests.map((interest, i) => (
+                        <Badge key={i} className="bg-coral/10 text-coral hover:bg-coral/20 border-none">
+                          {interest}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500">Update your profile to add interests</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -245,9 +195,21 @@ const Dashboard = () => {
               
               <TabsContent value="activities" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {recommendations.activities.map(activity => (
-                    <RecommendationCard key={activity.id} item={activity} />
-                  ))}
+                  {activitiesLoading ? (
+                    <>
+                      <LoadingCard />
+                      <LoadingCard />
+                      <LoadingCard />
+                    </>
+                  ) : activities && activities.length > 0 ? (
+                    activities.map(activity => (
+                      <RecommendationCard key={activity.id} item={activity} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-10">
+                      <p>No activities found. Check back soon!</p>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-6 text-center">
                   <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
@@ -258,9 +220,20 @@ const Dashboard = () => {
               
               <TabsContent value="dining" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {recommendations.dining.map(restaurant => (
-                    <RecommendationCard key={restaurant.id} item={restaurant} />
-                  ))}
+                  {diningLoading ? (
+                    <>
+                      <LoadingCard />
+                      <LoadingCard />
+                    </>
+                  ) : dining && dining.length > 0 ? (
+                    dining.map(restaurant => (
+                      <RecommendationCard key={restaurant.id} item={restaurant} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-10">
+                      <p>No dining options found. Check back soon!</p>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-6 text-center">
                   <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
@@ -271,9 +244,20 @@ const Dashboard = () => {
               
               <TabsContent value="accommodation" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {recommendations.accommodation.map(hotel => (
-                    <RecommendationCard key={hotel.id} item={hotel} />
-                  ))}
+                  {accommodationLoading ? (
+                    <>
+                      <LoadingCard />
+                      <LoadingCard />
+                    </>
+                  ) : accommodation && accommodation.length > 0 ? (
+                    accommodation.map(hotel => (
+                      <RecommendationCard key={hotel.id} item={hotel} />
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-10">
+                      <p>No accommodations found. Check back soon!</p>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-6 text-center">
                   <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">

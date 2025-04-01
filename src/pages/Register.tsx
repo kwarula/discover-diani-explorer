@@ -1,88 +1,178 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import RegistrationForm from '@/components/forms/RegistrationForm';
-import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 const Register = () => {
-  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isTourist, setIsTourist] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
   const navigate = useNavigate();
+  const { signUp, user } = useAuth();
+  const { toast } = useToast();
+  
+  // If user is already logged in, redirect to dashboard
+  React.useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
-  const handleRegistrationComplete = () => {
-    setRegistrationComplete(true);
-    toast({
-      title: "Registration successful!",
-      description: "Your account has been created. Welcome to Discover Diani!",
-      duration: 5000,
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Redirect to dashboard after 2 seconds
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 2000);
+    if (!fullName || !email || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      setError('');
+      
+      await signUp(email, password, {
+        full_name: fullName,
+        is_tourist: isTourist,
+      });
+      
+      toast({
+        title: 'Registration successful',
+        description: 'Please complete your profile in the dashboard',
+      });
+      
+      // The auth state listener in AuthContext will handle redirecting to dashboard
+    } catch (error: any) {
+      setError(error.message || 'Failed to sign up');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
       
-      <div className="flex-grow flex items-center py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-display font-bold text-ocean-dark mb-2">
-                Join Discover Diani
-              </h1>
-              <p className="text-gray-600">
-                Create your account and unlock personalized recommendations for your Diani Beach adventure
-              </p>
-            </div>
-            
-            {registrationComplete ? (
-              <div className="text-center py-12 max-w-md mx-auto">
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-green-600"
-                  >
-                    <path d="M20 6L9 17l-5-5"></path>
-                  </svg>
+      <div className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center text-ocean-dark">Create an account</CardTitle>
+            <CardDescription className="text-center">
+              Sign up to get personalized recommendations for Diani Beach
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+                  {error}
                 </div>
-                <h2 className="text-2xl font-display font-semibold mb-2">Registration Complete!</h2>
-                <p className="text-gray-600 mb-6">
-                  Your account has been created successfully. Redirecting you to your dashboard...
-                </p>
-                <Button asChild className="bg-ocean hover:bg-ocean-dark">
-                  <Link to="/dashboard">Go to Dashboard</Link>
-                </Button>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
               </div>
-            ) : (
-              <>
-                <RegistrationForm onComplete={handleRegistrationComplete} />
-                
-                <div className="text-center mt-6">
-                  <p className="text-gray-600">
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-ocean hover:underline">
-                      Log in here
-                    </Link>
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isTourist"
+                  checked={isTourist}
+                  onCheckedChange={(checked) => setIsTourist(checked as boolean)}
+                />
+                <Label htmlFor="isTourist" className="text-sm">
+                  I am a tourist visiting Diani Beach
+                </Label>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-ocean hover:bg-ocean-dark"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : 'Create account'}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter>
+            <div className="text-center w-full text-sm">
+              Already have an account?{' '}
+              <Link to="/login" className="text-ocean hover:underline">
+                Log in
+              </Link>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
       
       <Footer />
