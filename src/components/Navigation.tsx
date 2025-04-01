@@ -7,9 +7,10 @@ import {
   Home, 
   Map, 
   Calendar, 
-  Coffee, 
+  ShoppingBag, 
   Compass, 
-  MessageCircle 
+  MessageCircle,
+  FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -38,8 +39,8 @@ const Navigation = () => {
             <Link to="/" className="text-ocean-dark hover:text-ocean font-medium">Home</Link>
             <Link to="/explore" className="text-ocean-dark hover:text-ocean font-medium">Explore</Link>
             <Link to="/activities" className="text-ocean-dark hover:text-ocean font-medium">Activities</Link>
-            <Link to="/restaurants" className="text-ocean-dark hover:text-ocean font-medium">Dining</Link>
-            <Link to="/about" className="text-ocean-dark hover:text-ocean font-medium">About</Link>
+            <Link to="/market" className="text-ocean-dark hover:text-ocean font-medium">Market</Link>
+            <Link to="/blog" className="text-ocean-dark hover:text-ocean font-medium">Blog</Link>
             <Button className="bg-ocean hover:bg-ocean-dark text-white">
               Get Started
             </Button>
@@ -88,20 +89,20 @@ const Navigation = () => {
               <span>Activities</span>
             </Link>
             <Link 
-              to="/restaurants" 
+              to="/market" 
               className="flex items-center p-3 space-x-4 rounded-md hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
-              <Coffee size={20} className="text-ocean" />
-              <span>Dining</span>
+              <ShoppingBag size={20} className="text-ocean" />
+              <span>Market</span>
             </Link>
             <Link 
-              to="/about" 
+              to="/blog" 
               className="flex items-center p-3 space-x-4 rounded-md hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
-              <Map size={20} className="text-ocean" />
-              <span>About</span>
+              <FileText size={20} className="text-ocean" />
+              <span>Blog</span>
             </Link>
             
             <div className="pt-2">
