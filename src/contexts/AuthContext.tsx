@@ -1,19 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-type Profile = {
-  id: string;
-  username: string | null;
-  full_name: string | null;
-  avatar_url: string | null;
-  is_tourist: boolean;
-  stay_duration: number | null;
-  dietary_preferences: string[] | null;
-  interests: string[] | null;
-};
+import { Profile } from '@/types/database';
 
 type AuthContextType = {
   user: User | null;

@@ -1,20 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-export type Listing = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  sub_category: string | null;
-  price: number;
-  price_unit: string | null;
-  location: string;
-  images: string[];
-  featured: boolean;
-  rating: number;
-};
+import { Listing } from '@/types/database';
 
 export const useListings = (category?: string, limit = 10) => {
   return useQuery({
@@ -24,7 +11,7 @@ export const useListings = (category?: string, limit = 10) => {
         .from('listings')
         .select(`
           id, title, description, category, sub_category, 
-          price, price_unit, location, images, featured,
+          price, price_unit, location, images, featured, user_id, status, created_at, updated_at,
           (
             SELECT AVG(rating) as rating
             FROM reviews
@@ -45,7 +32,8 @@ export const useListings = (category?: string, limit = 10) => {
         throw error;
       }
       
-      return data.map(item => ({
+      // Cast and transform the response data
+      return (data || []).map(item => ({
         ...item,
         rating: item.rating || 0,
         images: item.images || []
@@ -62,7 +50,7 @@ export const useListingById = (id: string) => {
         .from('listings')
         .select(`
           id, title, description, category, sub_category, 
-          price, price_unit, location, images, featured,
+          price, price_unit, location, images, featured, user_id, status, created_at, updated_at,
           (
             SELECT AVG(rating) as rating
             FROM reviews
@@ -76,10 +64,11 @@ export const useListingById = (id: string) => {
         throw error;
       }
       
+      // Cast and transform the response data
       return {
         ...data,
-        rating: data.rating || 0,
-        images: data.images || []
+        rating: data?.rating || 0,
+        images: data?.images || []
       } as Listing;
     },
     enabled: !!id
