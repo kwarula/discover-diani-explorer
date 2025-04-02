@@ -29,7 +29,7 @@ const Hero = () => {
         <div className="relative w-full h-full overflow-hidden">
           <iframe 
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] min-w-[100%] min-h-[100%] object-cover"
-            src="https://www.youtube.com/embed/P3KfAE_glBE?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=P3KfAE_glBE"
+            src="https://www.youtube.com/embed/tDkyN-TnXJI?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=P3KfAE_glBE"
             title="Diani Beach Video"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
