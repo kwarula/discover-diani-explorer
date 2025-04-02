@@ -27,7 +27,11 @@ export const useListings = (category: string | null = null, limit: number = 10, 
         throw error;
       }
       
-      return data;
+      // Add a default rating property to each listing
+      return data.map((listing: any) => ({
+        ...listing,
+        rating: listing.rating || 5.0 // Default rating if none exists
+      }));
     } catch (error) {
       console.error('Error fetching listings:', error);
       throw error;
@@ -57,7 +61,11 @@ export const useListing = (id: string | undefined) => {
         throw error;
       }
       
-      return data;
+      // Add a default rating if missing
+      return {
+        ...data,
+        rating: data.rating || 5.0
+      };
     } catch (error) {
       console.error('Error fetching listing:', error);
       throw error;

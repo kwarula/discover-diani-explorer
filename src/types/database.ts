@@ -5,8 +5,13 @@
 import { Database } from '@/integrations/supabase/types'; 
 
 // Define Profile type based on the auto-generated Supabase types
-export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type Listing = Database['public']['Tables']['listings']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'] & {
+  avatar_url?: string;
+  dietary_preferences?: string[];
+};
+export type Listing = Database['public']['Tables']['listings']['Row'] & {
+  rating: number;
+};
 export type Operator = Database['public']['Tables']['operators']['Row'];
 export type Review = Database['public']['Tables']['reviews']['Row'];
 export type OperatorGalleryMedia = Database['public']['Tables']['operator_gallery_media']['Row'];
