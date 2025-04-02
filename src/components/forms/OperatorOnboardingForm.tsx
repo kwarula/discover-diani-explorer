@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react'; // Added useCallback
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'; // Added imports
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +16,12 @@ import { useAuth } from '@/contexts/auth'; // Import useAuth
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 import { uploadFileToSupabase } from '@/lib/utils'; // Import upload helper
-// Placeholder for Map component
-// import MapInput from '@/components/ui/MapInput';
-// Placeholder for File Upload component
-// import FileUpload from '@/components/ui/FileUpload';
+
+// Define default map center (Diani Beach)
+const defaultCenter = {
+  lat: -4.2833, // Latitude for Diani Beach
+  lng: 39.5833  // Longitude for Diani Beach
+};
 
 // Define Zod schema for the entire form
 const onboardingSchema = z.object({
@@ -32,8 +35,10 @@ const onboardingSchema = z.object({
   // Step 2: Location & Operation
   addressStreet: z.string().optional(),
   addressArea: z.string().min(2, { message: "Area/Neighborhood is required." }),
-  // Assuming City/Country are fixed for Diani for now, otherwise add fields
-  // mapCoordinates: z.object({ lat: z.number(), lng: z.number() }).optional(), // Placeholder for map data
+  mapCoordinates: z.object({ // Added map coordinates schema
+      lat: z.number(),
+      lng: z.number()
+    }).optional(), // Make optional initially, can enforce later if needed
   serviceAreaDescription: z.string().optional(),
   operatingHours: z.string().optional(), // Simple text for now, could be JSONB later
 
@@ -61,10 +66,13 @@ const onboardingSchema = z.object({
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 const TOTAL_STEPS = 5;
+const MAP_CONTAINER_STYLE = { height: '400px', width: '100%' }; // Style for map container
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Get key from env
 
 const OperatorOnboardingForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [markerPosition, setMarkerPosition] = useState(defaultCenter); // State for marker
   const { user } = useAuth(); // Get user from auth context
   const navigate = useNavigate(); // Hook for navigation
 
@@ -79,6 +87,7 @@ const OperatorOnboardingForm: React.FC = () => {
       contactPhone: "",
       addressStreet: "",
       addressArea: "",
+      mapCoordinates: defaultCenter, // Initialize map coordinates
       serviceAreaDescription: "",
       operatingHours: "",
       description: "",
@@ -94,6 +103,20 @@ const OperatorOnboardingForm: React.FC = () => {
       agreeToTerms: false,
     },
   });
+
+  // --- Map Marker Drag Handler ---
+  const onMarkerDragEnd = useCallback((event: google.maps.MapMouseEvent) => {
+    if (event.latLng) {
+      const newPos = {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng(),
+      };
+      setMarkerPosition(newPos);
+      form.setValue('mapCoordinates', newPos, { shouldValidate: true }); // Update form state
+      console.log("New Marker Position:", newPos);
+    }
+  }, [form]);
+
 
   // Function to handle form submission (final step)
   const processForm = async (values: OnboardingFormValues) => {
@@ -168,7 +191,8 @@ const OperatorOnboardingForm: React.FC = () => {
         contact_phone: values.contactPhone,
         address_street: values.addressStreet,
         address_area: values.addressArea,
-        // location_coordinates: values.mapCoordinates ? `POINT(${values.mapCoordinates.lng} ${values.mapCoordinates.lat})` : null, // Format for PostGIS point
+        // Format coordinates for PostGIS POINT type (Lng Lat)
+        location_coordinates: values.mapCoordinates ? `POINT(${values.mapCoordinates.lng} ${values.mapCoordinates.lat})` : null,
         service_area_description: values.serviceAreaDescription,
         operating_hours: values.operatingHours ? JSON.parse(JSON.stringify(values.operatingHours)) : null, // Basic JSON storage for now
         description: values.description,
@@ -248,7 +272,8 @@ const OperatorOnboardingForm: React.FC = () => {
     // Trigger validation for fields relevant to the current step
     let fieldsToValidate: (keyof OnboardingFormValues)[] = [];
     if (currentStep === 1) fieldsToValidate = ['businessName', 'businessType', 'contactPersonName', 'contactEmail', 'contactPhone'];
-    if (currentStep === 2) fieldsToValidate = ['addressArea']; // Add map validation later
+    // Validate mapCoordinates in step 2 (optional for now, but trigger validation if set)
+    if (currentStep === 2) fieldsToValidate = ['addressArea', 'mapCoordinates'];
     if (currentStep === 3) fieldsToValidate = ['description'];
     // Add validation triggers for steps 4 & 5 if needed (e.g., required uploads)
 
@@ -280,6 +305,11 @@ const OperatorOnboardingForm: React.FC = () => {
     }
   };
 
+   if (!GOOGLE_MAPS_API_KEY) {
+      return <div className="text-red-600 p-4">Error: Google Maps API Key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.</div>;
+  }
+
+
   return (
     <Card>
       <CardHeader>
@@ -307,18 +337,36 @@ const OperatorOnboardingForm: React.FC = () => {
                <div className="space-y-4">
                  <FormField control={form.control} name="addressStreet" render={({ field }) => ( <FormItem><FormLabel>Street Address (Optional)</FormLabel><FormControl><Input placeholder="e.g., Beach Road" {...field} /></FormControl><FormMessage /></FormItem> )} />
                  <FormField control={form.control} name="addressArea" render={({ field }) => ( <FormItem><FormLabel>Area / Neighborhood</FormLabel><FormControl><Input placeholder="e.g., Galu Beach, Ukunda Town" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 {/* Map Input Placeholder */}
-                 <FormItem>
-                   <FormLabel>Pin Location on Map</FormLabel>
-                   <FormControl>
-                     <div className="h-64 bg-gray-200 rounded flex items-center justify-center text-gray-500">
-                       {/* <MapInput field={...} /> */}
-                       Map Placeholder - Integration Needed
-                     </div>
-                   </FormControl>
-                   <FormDescription>Drag the pin to your exact business location.</FormDescription>
-                   <FormMessage />
-                 </FormItem>
+
+                 {/* --- Google Map Integration --- */}
+                 <FormField
+                    control={form.control}
+                    name="mapCoordinates"
+                    render={({ field }) => ( // field is implicitly used by form state, but we manage marker directly
+                      <FormItem>
+                        <FormLabel>Pin Location on Map</FormLabel>
+                        <FormControl>
+                          <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                            <GoogleMap
+                              mapContainerStyle={MAP_CONTAINER_STYLE}
+                              center={markerPosition} // Center map on marker
+                              zoom={15} // Adjust zoom level as needed
+                            >
+                              <Marker
+                                position={markerPosition}
+                                draggable={true}
+                                onDragEnd={onMarkerDragEnd} // Update position on drag end
+                              />
+                            </GoogleMap>
+                          </LoadScript>
+                        </FormControl>
+                        <FormDescription>Drag the pin to your exact business location. Coordinates: {markerPosition.lat.toFixed(4)}, {markerPosition.lng.toFixed(4)}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                 {/* --- End Google Map Integration --- */}
+
                  <FormField control={form.control} name="serviceAreaDescription" render={({ field }) => ( <FormItem><FormLabel>Service Area (if applicable)</FormLabel><FormControl><Textarea placeholder="Describe where you offer services if not fixed, e.g., 'Delivery within Diani', 'Tours cover South Coast'" {...field} /></FormControl><FormMessage /></FormItem> )} />
                  <FormField control={form.control} name="operatingHours" render={({ field }) => ( <FormItem><FormLabel>Operating Hours</FormLabel><FormControl><Textarea placeholder="e.g., Mon-Fri: 9am - 5pm, Sat: 10am - 2pm, Seasonal closures apply" {...field} /></FormControl><FormMessage /></FormItem> )} />
                </div>

@@ -16,6 +16,11 @@ import Activities from "./pages/Activities";
 import Market from "./pages/Market";
 import Profile from "./pages/Profile";
 import AuthRequired from "./components/AuthRequired";
+import BeachSafety from "./pages/BeachSafety";
+import TravelTips from "./pages/TravelTips";
+import WeatherForecast from "./pages/WeatherForecast";
+import LocalCustoms from "./pages/LocalCustoms";
+import Transportation from "./pages/Transportation";
 
 // Import operator pages
 import OperatorLanding from "./pages/OperatorLanding";
@@ -51,6 +56,13 @@ const App = () => (
             <Route path="/explore" element={<Explore />} />
             <Route path="/activities" element={<Activities />} />
             <Route path="/market" element={<Market />} />
+
+            {/* Resource Pages */}
+            <Route path="/beach-safety" element={<BeachSafety />} />
+            <Route path="/travel-tips" element={<TravelTips />} />
+            <Route path="/weather-forecast" element={<WeatherForecast />} />
+            <Route path="/local-customs" element={<LocalCustoms />} />
+            <Route path="/transportation" element={<Transportation />} />
 
             {/* Operator Flow Routes */}
             <Route path="/operator/welcome" element={<OperatorLanding />} />

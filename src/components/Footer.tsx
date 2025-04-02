@@ -32,7 +32,8 @@ const Footer = () => {
               <li><Link to="/" className="text-gray-300 hover:text-white transition-colors">Home</Link></li>
               <li><Link to="/explore" className="text-gray-300 hover:text-white transition-colors">Explore</Link></li>
               <li><Link to="/activities" className="text-gray-300 hover:text-white transition-colors">Activities</Link></li>
-              <li><Link to="/restaurants" className="text-gray-300 hover:text-white transition-colors">Dining</Link></li>
+              <li><Link to="/market" className="text-gray-300 hover:text-white transition-colors">Market</Link></li>
+              <li><Link to="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link></li>
               <li><Link to="/about" className="text-gray-300 hover:text-white transition-colors">About Us</Link></li>
             </ul>
           </div>
@@ -40,11 +41,11 @@ const Footer = () => {
           <div>
             <h4 className="font-medium text-lg mb-4">Resources</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Beach Safety</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Travel Tips</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Weather Forecast</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Local Customs</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Transportation</a></li>
+              <li><Link to="/beach-safety" className="text-gray-300 hover:text-white transition-colors">Beach Safety</Link></li>
+              <li><Link to="/travel-tips" className="text-gray-300 hover:text-white transition-colors">Travel Tips</Link></li>
+              <li><Link to="/weather-forecast" className="text-gray-300 hover:text-white transition-colors">Weather Forecast</Link></li>
+              <li><Link to="/local-customs" className="text-gray-300 hover:text-white transition-colors">Local Customs</Link></li>
+              <li><Link to="/transportation" className="text-gray-300 hover:text-white transition-colors">Transportation</Link></li>
             </ul>
           </div>
           
