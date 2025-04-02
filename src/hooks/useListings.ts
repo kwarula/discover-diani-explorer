@@ -7,6 +7,7 @@ export const useListings = (category?: string, limit = 10) => {
   return useQuery({
     queryKey: ['listings', category, limit],
     queryFn: async () => {
+      // Use explicit type cast to bypass TypeScript errors with Supabase client
       let query = supabase
         .from('listings')
         .select(`
@@ -59,6 +60,7 @@ export const useListingById = (id: string) => {
   return useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
+      // Use explicit type cast to bypass TypeScript errors with Supabase client
       const { data, error } = await (supabase
         .from('listings')
         .select(`

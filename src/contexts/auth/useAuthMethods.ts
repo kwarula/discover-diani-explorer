@@ -86,10 +86,10 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
 
   const updateProfile = async (profileData: Partial<Profile>) => {
     try {
-      // Use type assertion to work with Supabase typing
-      const { error } = await supabase
+      // Use explicit type cast to bypass TypeScript errors with Supabase client
+      const { error } = await (supabase
         .from('profiles')
-        .update(profileData as any)
+        .update(profileData) as any)
         .eq('id', profileData.id as string) as any;
 
       if (error) {
@@ -120,10 +120,10 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         interests: userData.interests || null,
       };
 
-      // Use type assertion to work with Supabase typing
-      const { error } = await supabase
+      // Use explicit type cast to bypass TypeScript errors with Supabase client
+      const { error } = await (supabase
         .from('profiles')
-        .insert([profileData as any]) as any;
+        .insert([profileData]) as any);
 
       if (error) {
         throw error;
