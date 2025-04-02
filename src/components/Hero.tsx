@@ -1,12 +1,11 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -22,27 +21,28 @@ const Hero = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Video background */}
+      {/* YouTube video background */}
       <div 
-        className="absolute inset-0 w-full h-full z-0"
+        className="absolute inset-0 w-full h-full z-0 pointer-events-none"
         style={{ transform: `translateY(${scrollPosition * 0.2}px)` }}
       >
-        <video 
-          ref={videoRef}
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          className="absolute inset-0 object-cover w-full h-full"
-        >
-          <source src="https://player.vimeo.com/external/400196612.sd.mp4?s=e4f03dc3ae1908d3671771748847ae81e467a9db&profile_id=164&oauth2_token_id=57447761" type="video/mp4" />
-          {/* Fallback image in case video doesn't load */}
-          <img 
-            src="https://images.unsplash.com/photo-1606046604972-77cc76aee944?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1935&q=80" 
-            alt="Diani Beach" 
-            className="w-full h-full object-cover" 
-          />
-        </video>
+        <div className="relative w-full h-full overflow-hidden">
+          <iframe 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] min-w-[100%] min-h-[100%] object-cover"
+            src="https://www.youtube.com/embed/P3KfAE_glBE?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=P3KfAE_glBE"
+            title="Diani Beach Video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+
+        {/* Fallback image in case video doesn't load */}
+        <img 
+          src="https://images.unsplash.com/photo-1606046604972-77cc76aee944?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1935&q=80" 
+          alt="Diani Beach" 
+          className="hidden w-full h-full object-cover" 
+        />
       </div>
       
       {/* Gradient overlay - more modern and vibrant */}
