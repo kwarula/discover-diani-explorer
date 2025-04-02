@@ -11,7 +11,27 @@ export const useAuthState = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Get the current session
+    // Set up auth state listener FIRST - important for preventing auth deadlocks
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+
+        // Fetch the profile when auth state changes and we have a user
+        // Use setTimeout to avoid potential Supabase auth deadlocks
+        if (currentSession?.user) {
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          // No user in the new auth state, set profile null and loading false
+          setProfile(null);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
     const getCurrentSession = async () => {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -21,6 +41,8 @@ export const useAuthState = () => {
         // Fetch the user profile if we have a user
         if (currentSession?.user) {
           await fetchUserProfile(currentSession.user.id);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Error fetching session:', error);
@@ -29,23 +51,6 @@ export const useAuthState = () => {
     };
 
     getCurrentSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-
-        // Fetch the profile when auth state changes and we have a user
-        if (currentSession?.user) {
-          await fetchUserProfile(currentSession.user.id);
-        } else {
-          // No user in the new auth state, set profile null and loading false
-          setProfile(null);
-          setIsLoading(false);
-        }
-      }
-    );
 
     return () => {
       subscription.unsubscribe();
@@ -60,7 +65,7 @@ export const useAuthState = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single() as any; // Add type assertion
+        .single() as { data: Profile | null, error: any };
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single()
         console.error('Error fetching user profile:', error);

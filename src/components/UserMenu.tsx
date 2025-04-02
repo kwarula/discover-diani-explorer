@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, User, UserCog } from 'lucide-react';
+import { LogOut, User, UserCog } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const UserMenu = () => {

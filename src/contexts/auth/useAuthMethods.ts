@@ -158,10 +158,10 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     signIn, 
     signUp, 
     signOut, 
-    updateProfile,
-    signInWithProvider,
+    updateProfile, 
+    signInWithProvider, // Destructure the new method here
     isSigningIn,
     isSigningUp,
-    isSigningOut 
+    isSigningOut
   };
 };

@@ -27,7 +27,7 @@ import OperatorLanding from "./pages/OperatorLanding";
 import OperatorAuth from "./pages/OperatorAuth";
 import OperatorOnboarding from "./pages/OperatorOnboarding";
 import OperatorSubmissionConfirmation from "./pages/OperatorSubmissionConfirmation";
-import OperatorDashboard from "./pages/OperatorDashboard";
+import OperatorDashboardWrapper from "./pages/OperatorDashboard"; // Updated to use our wrapper
 
 const queryClient = new QueryClient();
 
@@ -80,7 +80,7 @@ const App = () => (
             } />
              <Route path="/operator/dashboard" element={
               <AuthRequired>
-                <OperatorDashboard />
+                <OperatorDashboardWrapper />
               </AuthRequired>
             } />
 
