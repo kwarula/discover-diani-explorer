@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 type OperatorCheckStatus = 'idle' | 'checking' | 'exists' | 'not_exists' | 'error';
@@ -28,7 +28,7 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             .from('operators')
             .select('id') // Check only for existence
             .eq('user_id', user.id)
-            .maybeSingle();
+            .maybeSingle() as any;
 
           if (error && error.code !== 'PGRST116') { // Ignore "0 rows" error from maybeSingle
             console.error("AuthRequired: Error checking operator status", error);

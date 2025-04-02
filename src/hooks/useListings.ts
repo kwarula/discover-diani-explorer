@@ -18,7 +18,7 @@ export const useListings = (category: string | null = null, limit: number = 10, 
       const from = (page - 1) * limit;
       const to = from + limit - 1;
       
-      const { data, error, count } = await query
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .range(from, to)
         .eq('status', 'approved');

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
 import { toast } from 'sonner';
-import { Provider } from '@supabase/supabase-js'; // Import Provider type
+import { Provider } from '@supabase/supabase-js';
 
 export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<Profile | null>>) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -117,7 +117,6 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         provider,
         options: {
           // Redirect back to the dashboard after successful OAuth flow
-          // Ensure this matches your Supabase OAuth redirect settings
           redirectTo: `${window.location.origin}/dashboard`, 
         },
       });
@@ -125,10 +124,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       if (error) {
         throw error;
       }
-      // User will be redirected by Supabase, no success toast needed here
     } catch (error: any) {
       toast.error(error.message || `An error occurred while signing in with ${provider}`);
-      throw error; // Re-throw for potential handling in the component
+      throw error;
     }
   };
 
@@ -138,11 +136,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       const profileData = {
         id: userId,
         full_name: userData.full_name,
-        username: null,
-        avatar_url: null,
-        is_tourist: userData.is_tourist || false,
         stay_duration: userData.is_tourist ? (userData.stay_duration || null) : null,
-        dietary_preferences: userData.dietary_preferences || null,
         interests: userData.interests || null,
       };
 
