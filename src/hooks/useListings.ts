@@ -32,11 +32,23 @@ export const useListings = (category?: string, limit = 10) => {
         throw error;
       }
       
-      // Cast and transform the response data
+      // Convert the response data to our Listing type
       return (data || []).map(item => ({
-        ...item,
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        sub_category: item.sub_category,
+        price: item.price,
+        price_unit: item.price_unit,
+        location: item.location,
+        images: item.images || [],
+        featured: item.featured,
         rating: item.rating || 0,
-        images: item.images || []
+        user_id: item.user_id,
+        status: item.status,
+        created_at: item.created_at,
+        updated_at: item.updated_at
       })) as Listing[];
     },
   });
@@ -64,11 +76,27 @@ export const useListingById = (id: string) => {
         throw error;
       }
       
-      // Cast and transform the response data
+      // Convert to our Listing type with proper defaults
+      if (!data) {
+        throw new Error('Listing not found');
+      }
+      
       return {
-        ...data,
-        rating: data?.rating || 0,
-        images: data?.images || []
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        sub_category: data.sub_category,
+        price: data.price,
+        price_unit: data.price_unit,
+        location: data.location,
+        images: data.images || [],
+        featured: data.featured,
+        rating: data.rating || 0,
+        user_id: data.user_id,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at
       } as Listing;
     },
     enabled: !!id

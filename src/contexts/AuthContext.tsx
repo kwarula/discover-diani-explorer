@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,18 +60,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Type-safe way to query the profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
         return;
       }
 
-      setProfile(data as Profile);
+      if (data) {
+        // Explicitly convert to our Profile type
+        const profileData: Profile = {
+          id: data.id,
+          username: data.username,
+          full_name: data.full_name,
+          avatar_url: data.avatar_url,
+          is_tourist: data.is_tourist,
+          stay_duration: data.stay_duration,
+          dietary_preferences: data.dietary_preferences,
+          interests: data.interests
+        };
+        
+        setProfile(profileData);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -152,9 +168,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
 
     try {
+      // Type-safe way to update the profiles table
       const { error } = await supabase
         .from('profiles')
-        .update(data)
+        .update({
+          ...data
+        })
         .eq('id', user.id);
 
       if (error) {
@@ -166,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
+      // Update local state
       setProfile(prev => prev ? { ...prev, ...data } : null);
       
       toast({
