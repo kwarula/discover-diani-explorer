@@ -1,123 +1,146 @@
 
-import { User } from '@supabase/supabase-js';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { Profile } from '@/types/database';
+import { toast } from '@/components/ui/sonner';
 
-export const useAuthMethods = (
-  user: User | null,
-  setProfile: React.Dispatch<React.SetStateAction<Profile | null>>
-) => {
-  const { toast } = useToast();
+export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<Profile | null>>) => {
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      setIsSigningIn(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        toast({
-          title: 'Login failed',
-          description: error.message,
-          variant: 'destructive',
-        });
         throw error;
       }
-
-      toast({
-        title: 'Logged in',
-        description: 'Welcome back to Discover Diani!',
-      });
-    } catch (error) {
-      console.error('Error signing in:', error);
+      
+      toast.success('Successfully signed in');
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while signing in');
       throw error;
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      setIsSigningUp(true);
+      
+      // Register the user
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData,
+          data: {
+            full_name: userData.fullName,
+            // Include other user metadata as needed
+          },
         },
       });
 
       if (error) {
-        toast({
-          title: 'Registration failed',
-          description: error.message,
-          variant: 'destructive',
-        });
         throw error;
       }
 
-      toast({
-        title: 'Welcome to Discover Diani!',
-        description: 'Your account has been created successfully.',
-      });
-    } catch (error) {
-      console.error('Error signing up:', error);
+      // Create the user profile if we have a user
+      if (data.user) {
+        await createUserProfile(data.user.id, userData);
+      }
+
+      toast.success('Account created successfully. You are now signed in.');
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while creating your account');
       throw error;
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: 'Logged out',
-        description: 'You have been logged out successfully.',
-      });
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log out. Please try again.',
-        variant: 'destructive',
-      });
+      setIsSigningOut(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Successfully signed out');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while signing out');
+      throw error;
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
-  const updateProfile = async (data: Partial<Profile>) => {
-    if (!user) return;
-
+  const updateProfile = async (profileData: Partial<Profile>) => {
     try {
-      // We use any here to avoid TypeScript errors with the Supabase client
-      const { error } = await supabase
+      // Type assertion to any as a workaround
+      const { error } = await (supabase
         .from('profiles')
-        .update(data as any)
-        .eq('id', user.id) as { error: any };
+        .update(profileData as any)
+        .eq('id', profileData.id as string) as any);
 
       if (error) {
-        toast({
-          title: 'Update failed',
-          description: error.message,
-          variant: 'destructive',
-        });
         throw error;
       }
 
-      // Update local state
-      setProfile(prev => prev ? { ...prev, ...data } : null);
+      // Update the profile state
+      setProfile(prev => prev ? { ...prev, ...profileData } : null);
       
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully.',
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while updating your profile');
       throw error;
     }
   };
 
-  return {
-    signIn,
-    signUp,
-    signOut,
-    updateProfile
+  // Helper function to create a user profile
+  const createUserProfile = async (userId: string, userData: any) => {
+    try {
+      const profileData = {
+        id: userId,
+        full_name: userData.fullName,
+        username: null,
+        avatar_url: null,
+        is_tourist: userData.isTourist || false,
+        stay_duration: userData.isTourist ? (userData.stayDuration || null) : null,
+        dietary_preferences: userData.dietaryPreferences || null,
+        interests: userData.interests || null,
+      };
+
+      // Type assertion to any as a workaround
+      const { error } = await (supabase
+        .from('profiles')
+        .insert([profileData as any]) as any);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      throw error;
+    }
+  };
+
+  return { 
+    signIn, 
+    signUp, 
+    signOut, 
+    updateProfile,
+    isSigningIn,
+    isSigningUp,
+    isSigningOut 
   };
 };

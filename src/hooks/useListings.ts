@@ -23,7 +23,8 @@ export const useListings = (category?: string, limit = 10) => {
         .limit(limit);
       
       if (category) {
-        query = query.eq('category', category);
+        // Type assertion to any as a workaround
+        query = (query as any).eq('category', category);
       }
       
       const { data, error } = await query;
@@ -32,7 +33,7 @@ export const useListings = (category?: string, limit = 10) => {
         throw error;
       }
       
-      // Convert the response data to our Listing type
+      // Convert the response data to our Listing type with proper null checks
       return (data || []).map(item => ({
         id: item.id,
         title: item.title,
@@ -58,7 +59,7 @@ export const useListingById = (id: string) => {
   return useQuery({
     queryKey: ['listing', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('listings')
         .select(`
           id, title, description, category, sub_category, 
@@ -70,7 +71,7 @@ export const useListingById = (id: string) => {
           )
         `)
         .eq('id', id)
-        .single();
+        .single() as any);
       
       if (error) {
         throw error;

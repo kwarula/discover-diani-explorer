@@ -8,75 +8,73 @@ export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Get the current session
+    const getCurrentSession = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+
+        // Fetch the user profile if we have a user
+        if (currentSession?.user) {
+          await fetchUserProfile(currentSession.user.id);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error);
+        setIsLoading(false);
+      }
+    };
+
+    getCurrentSession();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          setTimeout(() => {
-            fetchProfile(newSession.user.id);
-          }, 0);
+      async (_event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+
+        // Fetch the profile when auth state changes and we have a user
+        if (currentSession?.user) {
+          await fetchUserProfile(currentSession.user.id);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
       }
     );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        fetchProfile(currentSession.user.id);
-      }
-      setIsLoading(false);
-    });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  // Function to fetch user profile from 'profiles' table
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // We use any here to avoid TypeScript errors with the Supabase client
-      // The actual Profile type is enforced when we construct the profileData object
-      const { data, error } = await supabase
+      setIsLoading(true);
+      // Type assertion to any as a workaround
+      const { data, error } = await (supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle() as { data: any, error: any };
+        .single() as any);
 
       if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (data) {
-        // Explicitly convert to our Profile type
-        const profileData: Profile = {
-          id: data.id,
-          username: data.username,
-          full_name: data.full_name,
-          avatar_url: data.avatar_url,
-          is_tourist: data.is_tourist,
-          stay_duration: data.stay_duration,
-          dietary_preferences: data.dietary_preferences,
-          interests: data.interests
-        };
-        
-        setProfile(profileData);
+        console.error('Error fetching user profile:', error);
+      } else if (data) {
+        setProfile(data as Profile);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetch profile:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { user, session, profile, setProfile, isLoading };
+  return { user, session, profile, isLoading, setProfile };
 };

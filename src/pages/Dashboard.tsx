@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, CloudSun, Compass, Map, Coffee, Hotel, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/auth'; // Updated import path
 import { useListings } from '@/hooks/useListings';
 
 const Dashboard = () => {
