@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/auth';
 import { useListings } from '@/hooks/useListings';
 import { WeatherCard, TripOverview, RecommendationTabs } from '@/components/dashboard';
+import ChatAssistant from '@/components/dashboard/ChatAssistant';
 
 const Dashboard = () => {
   const { profile } = useAuth();
@@ -46,10 +47,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Navigation />
       
-      <main className="flex-grow pt-20 pb-12 bg-gray-50">
+      <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Weather and Welcome Section */}
           <WeatherCard 
@@ -73,6 +74,9 @@ const Dashboard = () => {
           />
         </div>
       </main>
+      
+      {/* Chat Assistant */}
+      <ChatAssistant />
       
       <Footer />
     </div>
