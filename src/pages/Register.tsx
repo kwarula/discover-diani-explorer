@@ -6,22 +6,55 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/label'; // Keep Label for the Checkbox
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+// Define Zod schema for validation
+const formSchema = z.object({
+  fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters long.' }),
+  confirmPassword: z.string(),
+  isTourist: z.boolean().default(true),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"], // Set error path to confirmPassword field
+});
+
+type RegisterFormValues = z.infer<typeof formSchema>;
 
 const Register = () => {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isTourist, setIsTourist] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState(''); // For general form errors (e.g., API errors)
   
   const navigate = useNavigate();
   const { signUp, user } = useAuth();
+
+  // Initialize react-hook-form
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      isTourist: true,
+    },
+  });
   
   // If user is already logged in, redirect to dashboard
   React.useEffect(() => {
@@ -30,38 +63,26 @@ const Register = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!fullName || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
+  // Updated submit handler using react-hook-form
+  const onSubmit = async (values: RegisterFormValues) => {
+    setIsSubmitting(true);
+    setFormError(''); // Clear previous form errors
     
     try {
-      setIsSubmitting(true);
-      setError('');
-      
-      await signUp(email, password, {
-        full_name: fullName,
-        is_tourist: isTourist,
+      await signUp(values.email, values.password, {
+        full_name: values.fullName,
+        is_tourist: values.isTourist,
       });
       
-      toast.success('Registration successful! Please complete your profile in the dashboard');
+      toast.success('Registration successful! Redirecting to dashboard...');
       
-      // The auth state listener in AuthContext will handle redirecting to dashboard
+      // No explicit redirect needed here if AuthProvider handles it on user state change
+      // navigate('/dashboard', { replace: true }); // Keep if AuthProvider doesn't redirect automatically
+      
     } catch (error: any) {
-      setError(error.message || 'Failed to sign up');
+      // Display API or other errors not caught by Zod
+      setFormError(error.message || 'An unexpected error occurred during sign up.');
+      toast.error(error.message || 'Failed to sign up');
     } finally {
       setIsSubmitting(false);
     }
@@ -80,74 +101,97 @@ const Register = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
+            {/* Use the Form component from shadcn/ui */}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {formError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+                    {formError}
+                  </div>
+                )}
+                
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
+                
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isTourist"
-                  checked={isTourist}
-                  onCheckedChange={(checked) => setIsTourist(checked as boolean)}
+                
+                <FormField
+                  control={form.control}
+                  name="isTourist"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                       <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I am a tourist visiting Diani Beach
+                        </FormLabel>
+                        <FormDescription>
+                          Select this if you are planning a trip or currently visiting.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
                 />
-                <Label htmlFor="isTourist" className="text-sm">
-                  I am a tourist visiting Diani Beach
-                </Label>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-ocean hover:bg-ocean-dark"
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-ocean hover:bg-ocean-dark"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -158,6 +202,7 @@ const Register = () => {
                 ) : 'Create account'}
               </Button>
             </form>
+            </Form> {/* Add the missing closing tag */}
           </CardContent>
           <CardFooter>
             <div className="text-center w-full text-sm">

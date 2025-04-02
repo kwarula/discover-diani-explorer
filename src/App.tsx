@@ -16,6 +16,13 @@ import Activities from "./pages/Activities";
 import Market from "./pages/Market";
 import AuthRequired from "./components/AuthRequired";
 
+// Import new operator pages
+import OperatorLanding from "./pages/OperatorLanding";
+import OperatorAuth from "./pages/OperatorAuth";
+import OperatorOnboarding from "./pages/OperatorOnboarding";
+import OperatorSubmissionConfirmation from "./pages/OperatorSubmissionConfirmation";
+import OperatorDashboard from "./pages/OperatorDashboard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -38,6 +45,27 @@ const App = () => (
             <Route path="/explore" element={<Explore />} />
             <Route path="/activities" element={<Activities />} />
             <Route path="/market" element={<Market />} />
+
+            {/* Operator Flow Routes */}
+            <Route path="/operator/welcome" element={<OperatorLanding />} />
+            <Route path="/operator/auth" element={<OperatorAuth />} />
+            {/* Wrap onboarding, confirmation, and dashboard in AuthRequired */}
+            <Route path="/operator/onboarding" element={
+              <AuthRequired>
+                <OperatorOnboarding />
+              </AuthRequired>
+            } />
+             <Route path="/operator/submission-confirmation" element={
+              <AuthRequired>
+                <OperatorSubmissionConfirmation />
+              </AuthRequired>
+            } />
+             <Route path="/operator/dashboard" element={
+              <AuthRequired> {/* Add logic within OperatorDashboard to check if user IS an operator */}
+                <OperatorDashboard />
+              </AuthRequired>
+            } />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,6 +1,6 @@
 
 import { createContext } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Provider } from '@supabase/supabase-js'; // Import Provider
 import { Profile } from '@/types/database';
 
 export interface AuthContextType {
@@ -12,6 +12,7 @@ export interface AuthContextType {
   isSigningOut: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
+  signInWithProvider: (provider: Provider) => Promise<void>; // Add signature
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<Profile>) => Promise<void>;
 }
@@ -25,6 +26,7 @@ export const AuthContext = createContext<AuthContextType>({
   isSigningOut: false,
   signIn: async () => null,
   signUp: async () => null,
+  signInWithProvider: async () => {}, // Add default implementation
   signOut: async () => {},
   updateProfile: async () => {},
 });

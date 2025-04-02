@@ -17,6 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp, 
     signOut, 
     updateProfile, 
+    signInWithProvider, // Destructure the new method here
     isSigningIn,
     isSigningUp,
     isSigningOut
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSigningUp,
     isSigningOut,
     signIn,
+    signInWithProvider, // Add the new method here
     signUp,
     signOut,
     updateProfile

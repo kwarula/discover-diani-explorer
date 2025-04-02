@@ -29,11 +29,12 @@ export const useListings = (category?: string, limit = 10) => {
       }
       
       const { data, error } = await query;
-      
+
       if (error) {
+        console.error("Supabase query error in useListings:", error); // Add specific logging
         throw error;
       }
-      
+
       // Convert the response data to our Listing type with proper null checks
       return (data || []).map(item => ({
         id: item.id,
@@ -61,7 +62,7 @@ export const useListingById = (id: string) => {
     queryKey: ['listing', id],
     queryFn: async () => {
       // Use explicit type cast to bypass TypeScript errors with Supabase client
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from('listings')
         .select(`
           id, title, description, category, sub_category, 
@@ -73,12 +74,13 @@ export const useListingById = (id: string) => {
           )
         `)
         .eq('id', id)
-        .single() as any);
-      
+        .single()
+
       if (error) {
+        console.error(`Supabase query error in useListingById for ID ${id}:`, error); // Add specific logging
         throw error;
       }
-      
+
       // Convert to our Listing type with proper defaults
       if (!data) {
         throw new Error('Listing not found');

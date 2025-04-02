@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
 import { toast } from 'sonner';
+import { Provider } from '@supabase/supabase-js'; // Import Provider type
 
 export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<Profile | null>>) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -106,6 +107,28 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     }
   };
 
+  const signInWithProvider = async (provider: Provider) => {
+    try {
+      // No need for loading state here as Supabase handles the redirect flow
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          // Redirect back to the dashboard after successful OAuth flow
+          // Ensure this matches your Supabase OAuth redirect settings
+          redirectTo: `${window.location.origin}/dashboard`, 
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+      // User will be redirected by Supabase, no success toast needed here
+    } catch (error: any) {
+      toast.error(error.message || `An error occurred while signing in with ${provider}`);
+      throw error; // Re-throw for potential handling in the component
+    }
+  };
+
   // Helper function to create a user profile
   const createUserProfile = async (userId: string, userData: any) => {
     try {
@@ -139,6 +162,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     signUp, 
     signOut, 
     updateProfile,
+    signInWithProvider, // Add the new function
     isSigningIn,
     isSigningUp,
     isSigningOut 

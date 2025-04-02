@@ -57,16 +57,21 @@ const RecommendationTabs = ({
                 <RecommendationCard key={activity.id} item={activity} />
               ))
             ) : (
-              <div className="col-span-3 text-center py-10">
-                <p>No activities found. Check back soon!</p>
+              <div className="col-span-3 text-center py-10 text-gray-500">
+                <p>No personalized activities found yet.</p>
+                <p className="text-sm">Explore popular options or update your interests!</p> 
+                {/* Ideally, show popular items here */}
               </div>
             )}
           </div>
-          <div className="mt-6 text-center">
-            <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-              View All Activities
-            </Button>
-          </div>
+          {/* Only show View All if there are activities */}
+          {activities && activities.length > 0 && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
+                View All Activities
+              </Button>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="dining" className="mt-0">
@@ -81,16 +86,21 @@ const RecommendationTabs = ({
                 <RecommendationCard key={restaurant.id} item={restaurant} />
               ))
             ) : (
-              <div className="col-span-3 text-center py-10">
-                <p>No dining options found. Check back soon!</p>
+              <div className="col-span-3 text-center py-10 text-gray-500">
+                <p>No personalized dining found yet.</p>
+                <p className="text-sm">Explore popular options or update your interests!</p>
+                {/* Ideally, show popular items here */}
               </div>
             )}
           </div>
-          <div className="mt-6 text-center">
-            <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-              View All Restaurants
-            </Button>
-          </div>
+          {/* Only show View All if there are dining options */}
+          {dining && dining.length > 0 && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
+                View All Restaurants
+              </Button>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="accommodation" className="mt-0">
@@ -105,16 +115,21 @@ const RecommendationTabs = ({
                 <RecommendationCard key={hotel.id} item={hotel} />
               ))
             ) : (
-              <div className="col-span-3 text-center py-10">
-                <p>No accommodations found. Check back soon!</p>
+              <div className="col-span-3 text-center py-10 text-gray-500">
+                <p>No personalized accommodation found yet.</p>
+                <p className="text-sm">Explore popular options or update your interests!</p>
+                {/* Ideally, show popular items here */}
               </div>
             )}
           </div>
-          <div className="mt-6 text-center">
-            <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-              View All Accommodations
-            </Button>
-          </div>
+          {/* Only show View All if there are accommodations */}
+          {accommodation && accommodation.length > 0 && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
+                View All Accommodations
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -60,14 +59,14 @@ const ActivitiesPage = () => {
           }}
         />
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-2xl">
+          <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6">
               Diani Beach Activities
             </h1>
             <p className="text-xl mb-8 text-white/90">
               Experience the best activities Diani has to offer - from thrilling water sports to relaxing sunset cruises and cultural tours.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               <Badge className="bg-white/20 hover:bg-white/30 text-white border-none py-1.5 px-3">Water Sports</Badge>
               <Badge className="bg-white/20 hover:bg-white/30 text-white border-none py-1.5 px-3">Boat Tours</Badge>
               <Badge className="bg-white/20 hover:bg-white/30 text-white border-none py-1.5 px-3">Wildlife</Badge>
