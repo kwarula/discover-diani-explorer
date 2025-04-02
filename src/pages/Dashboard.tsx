@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { CloudSun } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/auth';
@@ -28,24 +27,6 @@ const Dashboard = () => {
     day: 'numeric'
   });
 
-  // Mock weather data - would be replaced with real API
-  const weatherData = {
-    current: {
-      temp: 28,
-      condition: 'Sunny',
-      icon: CloudSun,
-      wind: '12 km/h',
-      humidity: '68%'
-    },
-    forecast: [
-      { day: 'Mon', temp: 29, condition: 'Sunny' },
-      { day: 'Tue', temp: 27, condition: 'Partly cloudy' },
-      { day: 'Wed', temp: 28, condition: 'Sunny' },
-      { day: 'Thu', temp: 26, condition: 'Scattered showers' },
-      { day: 'Fri', temp: 27, condition: 'Sunny' },
-    ]
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navigation />
@@ -54,7 +35,6 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           {/* Weather and Welcome Section */}
           <WeatherCard 
-            weatherData={weatherData} 
             currentDate={currentDate}
             currentTime={currentTime}
             userName={profile?.full_name || 'Friend'}

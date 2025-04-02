@@ -1,7 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { format, addDays, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { toast } from '@/components/ui/use-toast';
 
+// Access environment variables correctly for Vite
 const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const STORMGLASS_API_KEY = import.meta.env.VITE_STORMGLASS_API_KEY;
 const LAT = -4.28; // Latitude for Diani Beach
@@ -58,9 +61,18 @@ const useWeather = (): UseWeatherResult => {
     let forecastData: ForecastDay[] = [];
     let fetchError: string | null = null;
 
+    // Debug the API keys
+    console.log('OpenWeather API Key available:', !!OPENWEATHER_API_KEY);
+    console.log('Stormglass API Key available:', !!STORMGLASS_API_KEY);
+
     // --- Fetch Current Weather (OpenWeatherMap) ---
     if (!OPENWEATHER_API_KEY) {
       fetchError = 'OpenWeatherMap API key is missing.';
+      toast({
+        title: "Weather API Error",
+        description: "OpenWeatherMap API key is missing. Please check your environment variables.",
+        variant: "destructive"
+      });
     } else {
       try {
         const response = await axios.get(OPENWEATHER_URL);
@@ -92,6 +104,11 @@ const useWeather = (): UseWeatherResult => {
     // --- Fetch Forecast (Stormglass) ---
     if (!STORMGLASS_API_KEY) {
        fetchError = (fetchError ? fetchError + '; ' : '') + 'Stormglass API key is missing.';
+       toast({
+        title: "Weather API Error",
+        description: "Stormglass API key is missing. Please check your environment variables.",
+        variant: "destructive"
+      });
     } else {
         const params = 'airTemperature,weatherIcon'; // Request air temp and icon
         const now = new Date();
@@ -142,7 +159,6 @@ const useWeather = (): UseWeatherResult => {
         }
     }
 
-
     // --- Update State ---
     if (fetchError) {
         setError(fetchError);
@@ -162,14 +178,12 @@ const useWeather = (): UseWeatherResult => {
         setError(null); // Clear blocking error if some data is available
     }
 
-
     setLoading(false);
   }, []); // Dependencies: none, fetch on mount
 
   useEffect(() => {
     fetchWeatherData();
   }, [fetchWeatherData]);
-
 
   return { currentWeather, forecast, loading, error };
 };

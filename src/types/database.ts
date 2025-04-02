@@ -1,122 +1,308 @@
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export interface Database {
   public: {
     Tables: {
       listings: {
         Row: {
-          category: string | null
+          category: string
           created_at: string
-          description: string | null
-          featured: boolean | null
+          description: string
+          featured: boolean
           id: string
-          images: string[] | null
-          location: string | null
-          price: number | null
-          price_unit: string | null
-          rating: number | null
-          status: string | null
-          sub_category: string | null
-          title: string | null
-          updated_at: string | null
-          user_id: string | null
+          images: string[]
+          location: string
+          price: number
+          price_unit: string
+          rating: number
+          status: string
+          sub_category: string
+          title: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          category?: string | null
+          category?: string
           created_at?: string
-          description?: string | null
-          featured?: boolean | null
+          description?: string
+          featured?: boolean
           id?: string
-          images?: string[] | null
-          location?: string | null
-          price?: number | null
-          price_unit?: string | null
-          rating?: number | null
-          status?: string | null
-          sub_category?: string | null
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          images?: string[]
+          location?: string
+          price?: number
+          price_unit?: string
+          rating?: number
+          status?: string
+          sub_category?: string
+          title: string
+          updated_at?: string
+          user_id?: string
         }
         Update: {
-          category?: string | null
+          category?: string
           created_at?: string
-          description?: string | null
-          featured?: boolean | null
+          description?: string
+          featured?: boolean
           id?: string
-          images?: string[] | null
-          location?: string | null
-          price?: number | null
-          price_unit?: string | null
-          rating?: number | null
-          status?: string | null
-          sub_category?: string | null
-          title?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          images?: string[]
+          location?: string
+          price?: number
+          price_unit?: string
+          rating?: number
+          status?: string
+          sub_category?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "listings_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      operator_gallery_media: {
+        Row: {
+          id: string
+          media_type: string
+          media_url: string
+          operator_id: string
+          sort_order: number | null
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          media_type: string
+          media_url: string
+          operator_id: string
+          sort_order?: number | null
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          media_type?: string
+          media_url?: string
+          operator_id?: string
+          sort_order?: number | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_gallery_media_operator_id_fkey"
+            columns: ["operator_id"]
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      operator_verification_documents: {
+        Row: {
+          document_type: string
+          document_url: string
+          id: string
+          operator_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          document_type: string
+          document_url: string
+          id?: string
+          operator_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          document_type?: string
+          document_url?: string
+          id?: string
+          operator_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_verification_documents_operator_id_fkey"
+            columns: ["operator_id"]
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       operators: {
         Row: {
-          created_at: string
+          id: string
+          user_id: string
+          business_name: string
+          business_type: string
+          contact_person_name: string
+          contact_email: string
+          contact_phone: string
+          address_street: string | null
+          address_area: string | null
+          address_city: string | null
+          address_country: string | null
+          service_area_description: string | null
           description: string | null
-          id: string
-          location: string | null
-          name: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          location?: string | null
-          name?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          location?: string | null
-          name?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
+          categories: string[] | null
+          key_offerings: string[] | null
+          logo_url: string | null
+          cover_photo_url: string | null
+          location_coordinates: unknown | null
+          operating_hours: Json | null
+          price_range: string | null
+          status: string
           created_at: string
-          dietary_preferences: string[] | null
-          full_name: string | null
-          id: string
-          interests: string[] | null
-          stay_duration: number | null
           updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
+          id?: string
+          user_id: string
+          business_name: string
+          business_type: string
+          contact_person_name: string
+          contact_email: string
+          contact_phone: string
+          address_street?: string | null
+          address_area?: string | null
+          address_city?: string | null
+          address_country?: string | null
+          service_area_description?: string | null
+          description?: string | null
+          categories?: string[] | null
+          key_offerings?: string[] | null
+          logo_url?: string | null
+          cover_photo_url?: string | null
+          location_coordinates?: unknown | null
+          operating_hours?: Json | null
+          price_range?: string | null
+          status?: string
           created_at?: string
-          dietary_preferences?: string[] | null
-          full_name?: string | null
-          id: string
-          interests?: string[] | null
-          stay_duration?: number | null
           updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          dietary_preferences?: string[] | null
-          full_name?: string | null
           id?: string
-          interests?: string[] | null
-          stay_duration?: number | null
+          user_id?: string
+          business_name?: string
+          business_type?: string
+          contact_person_name?: string
+          contact_email?: string
+          contact_phone?: string
+          address_street?: string | null
+          address_area?: string | null
+          address_city?: string | null
+          address_country?: string | null
+          service_area_description?: string | null
+          description?: string | null
+          categories?: string[] | null
+          key_offerings?: string[] | null
+          logo_url?: string | null
+          cover_photo_url?: string | null
+          location_coordinates?: unknown | null
+          operating_hours?: Json | null
+          price_range?: string | null
+          status?: string
+          created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "operators_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          full_name: string | null
+          avatar_url: string | null
+          dietary_preferences: string[] | null
+          interests: string[] | null
+          stay_duration: number | null
+          is_tourist: boolean | null
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          updated_at?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          dietary_preferences?: string[] | null
+          interests?: string[] | null
+          stay_duration?: number | null
+          is_tourist?: boolean | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          full_name?: string | null
+          avatar_url?: string | null
+          dietary_preferences?: string[] | null
+          interests?: string[] | null
+          stay_duration?: number | null
+          is_tourist?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      reviews: {
+        Row: {
+          id: number
+          created_at: string
+          user_id: string
+          listing_id: string
+          rating: number
+          comment: string | null
+        }
+        Insert: {
+          id?: number
+          created_at?: string
+          user_id: string
+          listing_id: string
+          rating: number
+          comment?: string | null
+        }
+        Update: {
+          id?: number
+          created_at?: string
+          user_id?: string
+          listing_id?: string
+          rating?: number
+          comment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_listing_id_fkey"
+            columns: ["listing_id"]
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -128,63 +314,12 @@ export interface Database {
     Enums: {
       [_ in never]: never
     }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
 }
 
-export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (Database["public"]["Tables"] & { row: any })
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Row: any
-    }
-    ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName]["Row"]
-    : never
-  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] & {
-      row: any
-    })
-    ? Database["public"]["Tables"][PublicTableNameOrOptions] extends {
-        Row: any
-      }
-      ? Database["public"]["Tables"][PublicTableNameOrOptions]["Row"]
-      : never
-    : never
+export type Profile = Database['public']['Tables']['profiles']['Row']
+export type Listing = Database['public']['Tables']['listings']['Row']
+export type Review = Database['public']['Tables']['reviews']['Row']
+export type Operator = Database['public']['Tables']['operators']['Row']
 
-// Define a proper union type for operator status to fix TS errors
-export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info';
-
-export interface Profile {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  full_name: string;
-  avatar_url?: string;
-  stay_duration: number | null;
-  interests: string[] | null;
-  dietary_preferences?: string[] | null;
-}
-
-export interface Listing {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  title: string;
-  description: string;
-  price: number;
-  price_unit: string;
-  location: string;
-  category: string;
-  sub_category: string;
-  images: string[];
-  featured: boolean;
-  status: string;
-  user_id: string;
-  rating?: number;
-}
+export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info'
