@@ -41,7 +41,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         password,
         options: {
           data: {
-            full_name: userData.fullName,
+            full_name: userData.full_name,
             // Include other user metadata as needed
           },
         },
@@ -86,11 +86,11 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
 
   const updateProfile = async (profileData: Partial<Profile>) => {
     try {
-      // Type assertion to any as a workaround
-      const { error } = await (supabase
+      // Use type assertion to work with Supabase typing
+      const { error } = await supabase
         .from('profiles')
         .update(profileData as any)
-        .eq('id', profileData.id as string) as any);
+        .eq('id', profileData.id as string) as any;
 
       if (error) {
         throw error;
@@ -111,19 +111,19 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     try {
       const profileData = {
         id: userId,
-        full_name: userData.fullName,
+        full_name: userData.full_name,
         username: null,
         avatar_url: null,
-        is_tourist: userData.isTourist || false,
-        stay_duration: userData.isTourist ? (userData.stayDuration || null) : null,
-        dietary_preferences: userData.dietaryPreferences || null,
+        is_tourist: userData.is_tourist || false,
+        stay_duration: userData.is_tourist ? (userData.stay_duration || null) : null,
+        dietary_preferences: userData.dietary_preferences || null,
         interests: userData.interests || null,
       };
 
-      // Type assertion to any as a workaround
-      const { error } = await (supabase
+      // Use type assertion to work with Supabase typing
+      const { error } = await supabase
         .from('profiles')
-        .insert([profileData as any]) as any);
+        .insert([profileData as any]) as any;
 
       if (error) {
         throw error;

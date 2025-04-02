@@ -57,12 +57,12 @@ export const useAuthState = () => {
   const fetchUserProfile = async (userId: string) => {
     try {
       setIsLoading(true);
-      // Type assertion to any as a workaround
-      const { data, error } = await (supabase
+      // Use type assertion to work with Supabase typing
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single() as any);
+        .single() as any;
 
       if (error) {
         console.error('Error fetching user profile:', error);
