@@ -74,7 +74,7 @@ export const useAuthState = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single(); // Removed 'as any'
+        .single() as any; // Add type assertion
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single(), not necessarily an error here
         console.error('Error fetching user profile:', error);

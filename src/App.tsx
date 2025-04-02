@@ -14,9 +14,10 @@ import Blog from "./pages/Blog";
 import Explore from "./pages/Explore";
 import Activities from "./pages/Activities";
 import Market from "./pages/Market";
+import Profile from "./pages/Profile";
 import AuthRequired from "./components/AuthRequired";
 
-// Import new operator pages
+// Import operator pages
 import OperatorLanding from "./pages/OperatorLanding";
 import OperatorAuth from "./pages/OperatorAuth";
 import OperatorOnboarding from "./pages/OperatorOnboarding";
@@ -41,6 +42,11 @@ const App = () => (
                 <Dashboard />
               </AuthRequired>
             } />
+            <Route path="/profile" element={
+              <AuthRequired>
+                <Profile />
+              </AuthRequired>
+            } />
             <Route path="/blog" element={<Blog />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/activities" element={<Activities />} />
@@ -61,7 +67,7 @@ const App = () => (
               </AuthRequired>
             } />
              <Route path="/operator/dashboard" element={
-              <AuthRequired> {/* Add logic within OperatorDashboard to check if user IS an operator */}
+              <AuthRequired>
                 <OperatorDashboard />
               </AuthRequired>
             } />

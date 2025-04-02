@@ -1,109 +1,73 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Listing } from '@/types/database';
 
-export const useListings = (category?: string, limit = 10) => {
-  return useQuery({
-    queryKey: ['listings', category, limit],
-    queryFn: async () => {
-      // Use explicit type cast to bypass TypeScript errors with Supabase client
+// Function to fetch listings with optional pagination and category filtering
+export const useListings = (category: string | null = null, limit: number = 10, page: number = 1) => {
+  const fetchListings = async () => {
+    try {
       let query = supabase
         .from('listings')
-        .select(`
-          id, title, description, category, sub_category, 
-          price, price_unit, location, images, featured, user_id, status, created_at, updated_at,
-          (
-            SELECT AVG(rating) as rating
-            FROM reviews
-            WHERE reviews.listing_id = listings.id
-          )
-        `)
-        .eq('status', 'approved')
-        .order('featured', { ascending: false })
-        .limit(limit);
+        .select('*') as any;
       
       if (category) {
-        // Type assertion to any as a workaround
-        query = (query as any).eq('category', category);
+        query = query.eq('category', category);
       }
       
-      const { data, error } = await query;
-
+      // Add pagination
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to)
+        .eq('status', 'approved');
+      
       if (error) {
-        console.error("Supabase query error in useListings:", error); // Add specific logging
         throw error;
       }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching listings:', error);
+      throw error;
+    }
+  };
 
-      // Convert the response data to our Listing type with proper null checks
-      return (data || []).map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        sub_category: item.sub_category,
-        price: item.price,
-        price_unit: item.price_unit,
-        location: item.location,
-        images: item.images || [],
-        featured: item.featured,
-        rating: item.rating || 0,
-        user_id: item.user_id,
-        status: item.status,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      })) as Listing[];
-    },
+  return useQuery({
+    queryKey: ['listings', category, limit, page],
+    queryFn: fetchListings,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
-export const useListingById = (id: string) => {
-  return useQuery({
-    queryKey: ['listing', id],
-    queryFn: async () => {
-      // Use explicit type cast to bypass TypeScript errors with Supabase client
+// Function to fetch a single listing by ID
+export const useListing = (id: string | undefined) => {
+  const fetchListing = async () => {
+    if (!id) return null;
+    
+    try {
       const { data, error } = await supabase
         .from('listings')
-        .select(`
-          id, title, description, category, sub_category, 
-          price, price_unit, location, images, featured, user_id, status, created_at, updated_at,
-          (
-            SELECT AVG(rating) as rating
-            FROM reviews
-            WHERE reviews.listing_id = listings.id
-          )
-        `)
+        .select('*, reviews(*)')
         .eq('id', id)
-        .single()
-
+        .single() as any;
+      
       if (error) {
-        console.error(`Supabase query error in useListingById for ID ${id}:`, error); // Add specific logging
         throw error;
       }
-
-      // Convert to our Listing type with proper defaults
-      if (!data) {
-        throw new Error('Listing not found');
-      }
       
-      return {
-        id: data.id,
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        sub_category: data.sub_category,
-        price: data.price,
-        price_unit: data.price_unit,
-        location: data.location,
-        images: data.images || [],
-        featured: data.featured,
-        rating: data.rating || 0,
-        user_id: data.user_id,
-        status: data.status,
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      } as Listing;
-    },
-    enabled: !!id
+      return data;
+    } catch (error) {
+      console.error('Error fetching listing:', error);
+      throw error;
+    }
+  };
+
+  return useQuery({
+    queryKey: ['listing', id],
+    queryFn: fetchListing,
+    enabled: !!id, // Only run the query if we have an ID
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

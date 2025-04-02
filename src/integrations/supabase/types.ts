@@ -60,6 +60,151 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_gallery_media: {
+        Row: {
+          id: string
+          media_type: string
+          media_url: string
+          operator_id: string
+          sort_order: number | null
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          media_type: string
+          media_url: string
+          operator_id: string
+          sort_order?: number | null
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          media_type?: string
+          media_url?: string
+          operator_id?: string
+          sort_order?: number | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_gallery_media_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operator_verification_documents: {
+        Row: {
+          document_type: string
+          document_url: string
+          id: string
+          operator_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          document_type: string
+          document_url: string
+          id?: string
+          operator_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          document_type?: string
+          document_url?: string
+          id?: string
+          operator_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_verification_documents_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          address_area: string | null
+          address_city: string | null
+          address_country: string | null
+          address_street: string | null
+          business_name: string
+          business_type: string
+          categories: string[] | null
+          contact_email: string
+          contact_person_name: string
+          contact_phone: string
+          cover_photo_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          key_offerings: string[] | null
+          location_coordinates: unknown | null
+          logo_url: string | null
+          operating_hours: Json | null
+          price_range: string | null
+          service_area_description: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_area?: string | null
+          address_city?: string | null
+          address_country?: string | null
+          address_street?: string | null
+          business_name: string
+          business_type: string
+          categories?: string[] | null
+          contact_email: string
+          contact_person_name: string
+          contact_phone: string
+          cover_photo_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key_offerings?: string[] | null
+          location_coordinates?: unknown | null
+          logo_url?: string | null
+          operating_hours?: Json | null
+          price_range?: string | null
+          service_area_description?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_area?: string | null
+          address_city?: string | null
+          address_country?: string | null
+          address_street?: string | null
+          business_name?: string
+          business_type?: string
+          categories?: string[] | null
+          contact_email?: string
+          contact_person_name?: string
+          contact_phone?: string
+          cover_photo_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          key_offerings?: string[] | null
+          location_coordinates?: unknown | null
+          logo_url?: string | null
+          operating_hours?: Json | null
+          price_range?: string | null
+          service_area_description?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

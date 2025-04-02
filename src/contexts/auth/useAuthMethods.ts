@@ -76,6 +76,8 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         throw error;
       }
       
+      // Clear profile state when user signs out
+      setProfile(null);
       toast.success('Successfully signed out');
     } catch (error: any) {
       toast.error(error.message || 'An error occurred while signing out');
@@ -88,9 +90,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   const updateProfile = async (profileData: Partial<Profile>) => {
     try {
       // Use explicit type cast to bypass TypeScript errors with Supabase client
-      const { error } = await (supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .update(profileData) as any)
+        .update(profileData as any)
         .eq('id', profileData.id as string) as any;
 
       if (error) {
@@ -101,6 +103,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       setProfile(prev => prev ? { ...prev, ...profileData } : null);
       
       toast.success('Profile updated successfully');
+      return data;
     } catch (error: any) {
       toast.error(error.message || 'An error occurred while updating your profile');
       throw error;
@@ -144,9 +147,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       };
 
       // Use explicit type cast to bypass TypeScript errors with Supabase client
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('profiles')
-        .insert([profileData]) as any);
+        .insert([profileData] as any) as any;
 
       if (error) {
         throw error;
@@ -162,7 +165,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     signUp, 
     signOut, 
     updateProfile,
-    signInWithProvider, // Add the new function
+    signInWithProvider,
     isSigningIn,
     isSigningUp,
     isSigningOut 
