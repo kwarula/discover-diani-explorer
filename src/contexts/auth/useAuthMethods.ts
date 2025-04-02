@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<Profile | null>>) => {
   const [isSigningIn, setIsSigningIn] = useState(false);

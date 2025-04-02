@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
@@ -10,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const Register = () => {
   const [fullName, setFullName] = useState('');
@@ -23,7 +22,6 @@ const Register = () => {
   
   const navigate = useNavigate();
   const { signUp, user } = useAuth();
-  const { toast } = useToast();
   
   // If user is already logged in, redirect to dashboard
   React.useEffect(() => {
@@ -59,10 +57,7 @@ const Register = () => {
         is_tourist: isTourist,
       });
       
-      toast({
-        title: 'Registration successful',
-        description: 'Please complete your profile in the dashboard',
-      });
+      toast.success('Registration successful! Please complete your profile in the dashboard');
       
       // The auth state listener in AuthContext will handle redirecting to dashboard
     } catch (error: any) {

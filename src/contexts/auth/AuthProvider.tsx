@@ -1,25 +1,43 @@
 
-import React, { createContext } from 'react';
+import React from 'react';
+import { AuthContext } from './types';
 import { useAuthState } from './useAuthState';
 import { useAuthMethods } from './useAuthMethods';
-import { AuthContextType } from './types';
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, session, profile, setProfile, isLoading } = useAuthState();
-  const { signIn, signUp, signOut, updateProfile } = useAuthMethods(user, setProfile);
+  const { 
+    user, 
+    profile, 
+    isLoading, 
+    setProfile 
+  } = useAuthState();
+  
+  const { 
+    signIn, 
+    signUp, 
+    signOut, 
+    updateProfile, 
+    isSigningIn,
+    isSigningUp,
+    isSigningOut
+  } = useAuthMethods(setProfile);
 
-  const value: AuthContextType = {
+  const value = {
     user,
-    session,
     profile,
     isLoading,
+    isSigningIn,
+    isSigningUp,
+    isSigningOut,
     signIn,
     signUp,
     signOut,
-    updateProfile,
+    updateProfile
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
