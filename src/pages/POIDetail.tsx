@@ -19,7 +19,7 @@ import {
   Landmark, 
   Building, 
   Mountain, 
-  PalmTree, 
+  Palmtree, // Changed from PalmTree 
   Umbrella, 
   Leaf,
   ChevronLeft,
@@ -35,7 +35,7 @@ const getCategoryIcon = (category: string) => {
     case 'historical_site':
       return <Landmark className="h-5 w-5 mr-2" />;
     case 'natural_feature':
-      return <PalmTree className="h-5 w-5 mr-2" />;
+      return <Palmtree className="h-5 w-5 mr-2" />; // Changed from PalmTree to Palmtree
     case 'cultural_site':
       return <Building className="h-5 w-5 mr-2" />;
     case 'conservation_site':

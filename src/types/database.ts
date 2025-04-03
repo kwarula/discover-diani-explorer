@@ -386,10 +386,23 @@ export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 
 export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null
 
 // POI Categories
-export type POICategory = 
-  | 'historical_site' 
-  | 'natural_feature' 
-  | 'cultural_site' 
-  | 'conservation_site' 
-  | 'viewpoint' 
-  | 'beach_area'
+export type POICategory = 'historical_site' | 'natural_feature' | 'cultural_site' | 'conservation_site' | 'viewpoint' | 'beach_area';
+
+export interface PointOfInterest {
+  id: string;
+  name: string;
+  description: string;
+  history: string | null;
+  significance: string | null;
+  category: POICategory;
+  images: string[] | null;
+  latitude: number;
+  longitude: number;
+  access_notes: string | null;
+  entrance_fee: string | null;
+  guide_required: boolean | null;
+  best_visit_time: string | null;
+  created_at: string;
+  updated_at: string;
+  featured: boolean | null;
+}

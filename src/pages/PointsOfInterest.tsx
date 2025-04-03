@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import Navigation from '@/components/Navigation';
@@ -11,7 +10,7 @@ import {
   Landmark, 
   Building, 
   Mountain, 
-  PalmTree, 
+  Palmtree,
   Umbrella, 
   Leaf,
   Compass,
@@ -113,7 +112,7 @@ const PointsOfInterestPage = () => {
                   <Landmark className="mr-2 h-4 w-4" /> Historical
                 </TabsTrigger>
                 <TabsTrigger value="natural_feature" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
-                  <PalmTree className="mr-2 h-4 w-4" /> Natural
+                  <Palmtree className="mr-2 h-4 w-4" /> Natural
                 </TabsTrigger>
                 <TabsTrigger value="cultural_site" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
                   <Building className="mr-2 h-4 w-4" /> Cultural

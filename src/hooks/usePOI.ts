@@ -7,6 +7,7 @@ import { PointOfInterest, POICategory } from '@/types/database';
 export const usePOIs = (category?: POICategory) => {
   const fetchPOIs = async () => {
     try {
+      // Use 'from' method with explicit typing
       let query = supabase
         .from('points_of_interest')
         .select('*') as any;
@@ -87,7 +88,7 @@ export const getCategoryIcon = (category: string) => {
     case 'historical_site':
       return 'landmark';
     case 'natural_feature':
-      return 'palmtree';
+      return 'palmtree'; // Changed from PalmTree to palmtree
     case 'cultural_site':
       return 'building';
     case 'conservation_site':
