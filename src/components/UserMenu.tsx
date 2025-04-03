@@ -14,8 +14,13 @@ import { useAuth } from '@/contexts/auth';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, UserCog } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { cn } from '@/lib/utils';
 
-const UserMenu = () => {
+interface UserMenuProps {
+  className?: string;
+}
+
+const UserMenu = ({ className }: UserMenuProps) => {
   const { user, profile, signOut, isSigningOut } = useAuth();
   const navigate = useNavigate();
 
@@ -52,7 +57,7 @@ const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" className={cn("relative h-8 w-8 rounded-full", className)}>
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || user.email || 'User'} />
             <AvatarFallback className="bg-ocean text-white">{initials}</AvatarFallback>
