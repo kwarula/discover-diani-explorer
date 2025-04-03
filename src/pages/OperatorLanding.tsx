@@ -1,10 +1,13 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import Navigation from '@/components/Navigation'; // Assuming standard navigation
-import Footer from '@/components/Footer'; // Assuming standard footer
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"; // For FAQ
-import { CheckCircle, Users, BarChart2, Edit, MessageSquare, ShieldCheck, TrendingUp } from 'lucide-react'; // Example icons
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { CheckCircle, Users, BarChart2, Edit, MessageSquare, ShieldCheck, TrendingUp } from 'lucide-react';
+import TransportBenefits from '@/components/TransportBenefits';
+import TransportOperators from '@/components/TransportOperators';
 
 const OperatorLanding: React.FC = () => {
   // Placeholder data - replace with actual data later
@@ -17,7 +20,7 @@ const OperatorLanding: React.FC = () => {
     { id: "faq1", question: "Who can list a business?", answer: "Any legitimate business operating in the Diani Beach area, including accommodation providers, restaurants, tour operators, shops, transport services, real estate agents, and other local services relevant to tourists and residents." },
     { id: "faq2", question: "What are the fees?", answer: "Currently, creating a basic listing on Discover Diani is free! We may introduce optional premium features or commission models for specific booking integrations in the future, but we promise transparency." },
     { id: "faq3", question: "How long does verification take?", answer: "Verification typically takes 24-48 business hours after you submit all required documents. We'll notify you via email once the process is complete." },
-    { id: "faq4", question: "What documents do I need?", answer: "Required documents vary by business type but generally include a valid Business Permit, KRA PIN Certificate, and any relevant tourism or operational licenses. The onboarding form will specify the exact documents needed for your business category." },
+    { id: "faq4", question: "What documents do I need?", answer: "Required documents vary by business type but generally include a valid Business Permit, KRA PIN Certificate, and any relevant tourism or operational licenses. For transport providers, we require a valid driver's license, vehicle insurance, and vehicle registration documents. The onboarding form will specify the exact documents needed for your business category." },
     { id: "faq5", question: "How do I manage inquiries?", answer: "Depending on your listing setup, inquiries may come directly to your provided contact details or through our platform's messaging system (feature coming soon!)." },
   ];
 
@@ -34,16 +37,21 @@ const OperatorLanding: React.FC = () => {
             Grow Your Diani Business with Discover Diani
           </h1>
           <p className="text-lg md:text-xl max-w-3xl mx-auto mb-8 text-white/90">
-            Join Diani's premier discovery platform. Showcase your accommodation, activity, restaurant, or service to thousands of tourists and locals looking for experiences.
+            Join Diani's premier discovery platform. Showcase your accommodation, activity, restaurant, transport service, or other offering to thousands of tourists and locals.
           </p>
           <Link to="/operator/auth">
             <Button size="lg" className="bg-coral hover:bg-coral-dark text-white font-semibold px-8 py-3 text-lg transition-transform transform hover:scale-105">
               Become an Operator
             </Button>
           </Link>
-          {/* <p className="mt-4 text-sm text-white/70">Join 100+ Diani Businesses</p> */}
         </div>
       </section>
+
+      {/* Special Transport Section */}
+      <TransportBenefits />
+
+      {/* Transport Operators Demo */}
+      <TransportOperators />
 
       {/* 2. Value Proposition / Benefits Section */}
       <section className="py-16 md:py-20 bg-white">

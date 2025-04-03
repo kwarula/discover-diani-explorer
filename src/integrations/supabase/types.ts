@@ -208,27 +208,33 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          dietary_preferences: string[] | null
           full_name: string | null
           id: string
           interests: string[] | null
           stay_duration: number | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
+          dietary_preferences?: string[] | null
           full_name?: string | null
           id: string
           interests?: string[] | null
           stay_duration?: number | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
+          dietary_preferences?: string[] | null
           full_name?: string | null
           id?: string
           interests?: string[] | null
           stay_duration?: number | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
