@@ -1,5 +1,7 @@
+
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTideData } from '@/hooks/useTideData';
 import { Waves } from 'lucide-react';
 import { Calendar, Compass, Map, Edit2, PlusCircle } from 'lucide-react';
