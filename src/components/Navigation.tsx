@@ -1,160 +1,233 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Menu, X, Sun, Moon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import UserMenu from './UserMenu';
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useMedia } from "@/hooks/use-mobile";
+import { Menu, X } from "lucide-react";
+import useAuth from "@/contexts/auth/useAuth";
+import UserMenu from "@/components/UserMenu";
+import { cn } from "@/lib/utils";
 
-const Navigation = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+// Configure your navigation items here
+const NAV_ITEMS = [
+  { label: "Home", path: "/" },
+  { label: "Explore", path: "/explore" },
+  { label: "Activities", path: "/activities" },
+  { label: "Points of Interest", path: "/points-of-interest" }, // New item
+  { label: "Market", path: "/market" },
+  { label: "Transportation", path: "/transportation" },
+];
+
+export default function Navigation({ className }: { className?: string }) {
   const location = useLocation();
-  
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Explore', path: '/explore' },
-    { name: 'Activities', path: '/activities' },
-    { name: 'Market', path: '/market' },
-    { name: 'Blog', path: '/blog' },
-  ];
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useMedia("(max-width: 768px)");
+  const { user, loading } = useAuth();
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  // Only show the navigation bar after determining auth state
+  const [showNav, setShowNav] = useState(false);
+
+  const isCurrentPath = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
   };
 
   useEffect(() => {
+    setShowNav(!loading);
+  }, [loading]);
+
+  useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
+      const offset = window.scrollY;
+      if (offset > 50) {
+        setScrolled(true);
       } else {
-        setIsScrolled(false);
+        setScrolled(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
+  if (!showNav) return null;
 
   return (
-    <nav 
+    <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled 
-          ? "navbar-scrolled py-2" 
-          : "bg-transparent py-4"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4",
+        scrolled
+          ? "bg-white/95 backdrop-blur-sm shadow-sm"
+          : "bg-transparent",
+        mobileMenuOpen && "bg-white",
+        className
       )}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <span className={cn(
-              "text-xl font-display font-bold transition-colors duration-300",
-              isScrolled ? "text-ocean-dark" : "text-white"
-            )}>
-              Discover Diani
-            </span>
-          </Link>
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        <Link
+          to="/"
+          className="flex items-center group text-xl lg:text-2xl font-bold font-display"
+        >
+          <span
+            className={cn(
+              "transition-colors duration-300",
+              scrolled || mobileMenuOpen
+                ? "text-ocean"
+                : "text-white"
+            )}
+          >
+            Discover
+          </span>
+          <span
+            className={cn(
+              "transition-colors duration-300",
+              scrolled || mobileMenuOpen
+                ? "text-coral"
+                : "text-white"
+            )}
+          >
+            Diani
+          </span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
+        {isMobile ? (
+          <div className="flex items-center">
+            {user && (
+              <UserMenu
                 className={cn(
-                  "text-sm font-medium transition-all duration-300 hover:text-coral relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 hover:after:w-full after:transition-all after:duration-300",
-                  isActive(link.path) 
-                    ? isScrolled ? "text-coral after:w-full after:bg-coral" : "text-coral after:w-full after:bg-coral"
-                    : isScrolled ? "text-gray-800" : "text-white"
+                  "mr-2",
+                  scrolled || mobileMenuOpen
+                    ? "text-gray-800"
+                    : "text-white"
                 )}
-              >
-                {link.name}
-              </Link>
-            ))}
-          </div>
-
-          {/* User Menu, Dark Mode Toggle, and Mobile Menu Button */}
-          <div className="flex items-center space-x-4">
+              />
+            )}
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleDarkMode}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={cn(
-                "rounded-full",
-                isScrolled ? "text-gray-800 hover:bg-gray-100" : "text-white hover:bg-white/20"
+                scrolled || mobileMenuOpen
+                  ? "text-gray-800 hover:bg-gray-100"
+                  : "text-white hover:bg-white/20"
               )}
             >
-              {isDarkMode ? (
-                <Sun className="h-5 w-5" />
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
               ) : (
-                <Moon className="h-5 w-5" />
+                <Menu className="w-6 h-6" />
               )}
-              <span className="sr-only">Toggle theme</span>
             </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex space-x-1 items-center">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300",
+                    isCurrentPath(item.path)
+                      ? scrolled
+                        ? "text-ocean bg-blue-50"
+                        : "text-white bg-white/20"
+                      : scrolled
+                      ? "text-gray-700 hover:bg-gray-100"
+                      : "text-white/90 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
 
-            <div className="hidden md:block">
-              <UserMenu />
+            <div className="flex items-center gap-2">
+              {user ? (
+                <UserMenu
+                  className={
+                    scrolled ? "text-gray-800" : "text-white"
+                  }
+                />
+              ) : (
+                <>
+                  <Button
+                    asChild
+                    variant={scrolled ? "outline" : "ghost"}
+                    className={
+                      scrolled
+                        ? "border-gray-300 text-gray-700 hover:bg-gray-100"
+                        : "text-white border-white/30 hover:bg-white/10"
+                    }
+                  >
+                    <Link to="/login">Login</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className={
+                      scrolled
+                        ? "bg-ocean hover:bg-ocean-dark text-white"
+                        : "bg-white text-ocean hover:bg-white/90"
+                    }
+                  >
+                    <Link to="/register">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "md:hidden",
-                isScrolled ? "text-gray-800 hover:bg-gray-100" : "text-white hover:bg-white/20"
-              )}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-              <span className="sr-only">Toggle menu</span>
-            </Button>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden glass-card mt-2 mx-4 overflow-hidden">
-          <div className="py-3 space-y-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={cn(
-                  "block py-2 px-5 text-base font-medium transition-all duration-300",
-                  isActive(link.path)
-                    ? "bg-coral/10 text-coral"
-                    : "text-gray-600 hover:bg-gray-50"
-                )}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {link.name}
-              </Link>
-            ))}
-            <div className="pt-2 pb-3 border-t border-gray-200 mt-2">
-              <div className="px-5">
-                <UserMenu />
-              </div>
-            </div>
+      {isMobile && mobileMenuOpen && (
+        <div className="md:hidden bg-white shadow-lg animate-in slide-in-from-top-5">
+          <div className="container mx-auto px-4 pt-2 pb-4">
+            <nav className="flex flex-col space-y-1">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-md",
+                    isCurrentPath(item.path)
+                      ? "text-ocean bg-blue-50"
+                      : "text-gray-700 hover:bg-gray-100"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {!user && (
+                <div className="pt-2 mt-2 border-t border-gray-200 flex flex-col gap-2">
+                  <Button asChild variant="outline" className="w-full">
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Login
+                    </Link>
+                  </Button>
+                  <Button asChild className="w-full bg-ocean">
+                    <Link
+                      to="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </nav>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
-};
-
-export default Navigation;
+}

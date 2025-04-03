@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -27,7 +26,7 @@ export interface Database {
           title: string
           updated_at: string
           user_id: string
-          tide_dependency: string | null // Added tide dependency field
+          tide_dependency: string | null
         }
         Insert: {
           category?: string
@@ -45,7 +44,7 @@ export interface Database {
           title: string
           updated_at?: string
           user_id?: string
-          tide_dependency?: string | null // Added tide dependency field
+          tide_dependency?: string | null
         }
         Update: {
           category?: string
@@ -63,7 +62,7 @@ export interface Database {
           title?: string
           updated_at?: string
           user_id?: string
-          tide_dependency?: string | null // Added tide dependency field
+          tide_dependency?: string | null
         }
         Relationships: [
           {
@@ -307,6 +306,63 @@ export interface Database {
           }
         ]
       }
+      points_of_interest: {
+        Row: {
+          id: string
+          name: string
+          description: string
+          history: string | null
+          significance: string | null
+          category: string
+          images: string[] | null
+          latitude: number
+          longitude: number
+          access_notes: string | null
+          entrance_fee: string | null
+          guide_required: boolean | null
+          best_visit_time: string | null
+          created_at: string
+          updated_at: string
+          featured: boolean | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description: string
+          history?: string | null
+          significance?: string | null
+          category: string
+          images?: string[] | null
+          latitude: number
+          longitude: number
+          access_notes?: string | null
+          entrance_fee?: string | null
+          guide_required?: boolean | null
+          best_visit_time?: string | null
+          created_at?: string
+          updated_at?: string
+          featured?: boolean | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string
+          history?: string | null
+          significance?: string | null
+          category?: string
+          images?: string[] | null
+          latitude?: number
+          longitude?: number
+          access_notes?: string | null
+          entrance_fee?: string | null
+          guide_required?: boolean | null
+          best_visit_time?: string | null
+          created_at?: string
+          updated_at?: string
+          featured?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -324,8 +380,16 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Listing = Database['public']['Tables']['listings']['Row']
 export type Review = Database['public']['Tables']['reviews']['Row']
 export type Operator = Database['public']['Tables']['operators']['Row']
+export type PointOfInterest = Database['public']['Tables']['points_of_interest']['Row']
 
 export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info'
-
-// Add enum for tide dependency
 export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null
+
+// POI Categories
+export type POICategory = 
+  | 'historical_site' 
+  | 'natural_feature' 
+  | 'cultural_site' 
+  | 'conservation_site' 
+  | 'viewpoint' 
+  | 'beach_area'

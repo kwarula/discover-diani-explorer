@@ -205,6 +205,63 @@ export type Database = {
         }
         Relationships: []
       }
+      points_of_interest: {
+        Row: {
+          access_notes: string | null
+          best_visit_time: string | null
+          category: string
+          created_at: string
+          description: string
+          entrance_fee: string | null
+          featured: boolean | null
+          guide_required: boolean | null
+          history: string | null
+          id: string
+          images: string[] | null
+          latitude: number
+          longitude: number
+          name: string
+          significance: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_notes?: string | null
+          best_visit_time?: string | null
+          category: string
+          created_at?: string
+          description: string
+          entrance_fee?: string | null
+          featured?: boolean | null
+          guide_required?: boolean | null
+          history?: string | null
+          id?: string
+          images?: string[] | null
+          latitude: number
+          longitude: number
+          name: string
+          significance?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_notes?: string | null
+          best_visit_time?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          entrance_fee?: string | null
+          featured?: boolean | null
+          guide_required?: boolean | null
+          history?: string | null
+          id?: string
+          images?: string[] | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          significance?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

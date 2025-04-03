@@ -21,6 +21,8 @@ import TravelTips from "./pages/TravelTips";
 import WeatherForecast from "./pages/WeatherForecast";
 import LocalCustoms from "./pages/LocalCustoms";
 import Transportation from "./pages/Transportation";
+import PointsOfInterest from "./pages/PointsOfInterest"; // Add import
+import POIDetail from "./pages/POIDetail"; // Add import
 
 // Import operator pages
 import OperatorLanding from "./pages/OperatorLanding";
@@ -63,6 +65,10 @@ const App = () => (
             <Route path="/weather-forecast" element={<WeatherForecast />} />
             <Route path="/local-customs" element={<LocalCustoms />} />
             <Route path="/transportation" element={<Transportation />} />
+            
+            {/* Points of Interest Routes */}
+            <Route path="/points-of-interest" element={<PointsOfInterest />} />
+            <Route path="/poi/:id" element={<POIDetail />} />
 
             {/* Operator Flow Routes */}
             <Route path="/operator/welcome" element={<OperatorLanding />} />
