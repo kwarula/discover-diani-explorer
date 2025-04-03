@@ -1,12 +1,8 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
-export type Database = {
+export type { Json } from '@/integrations/supabase/types';
+
+export interface Database extends GeneratedDatabase {
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -454,14 +450,14 @@ export type Database = {
   }
 }
 
-export type Profile = Database['public']['Tables']['profiles']['Row']
-export type Listing = Database['public']['Tables']['listings']['Row']
-export type Review = Database['public']['Tables']['reviews']['Row']
-export type Operator = Database['public']['Tables']['operators']['Row']
-export type PointOfInterest = Database['public']['Tables']['points_of_interest']['Row']
+export type Profile = GeneratedDatabase['public']['Tables']['profiles']['Row'];
+export type Operator = GeneratedDatabase['public']['Tables']['operators']['Row'];
+export type Listing = GeneratedDatabase['public']['Tables']['listings']['Row'];
+export type Review = GeneratedDatabase['public']['Tables']['reviews']['Row'];
+export type PointOfInterest = GeneratedDatabase['public']['Tables']['points_of_interest']['Row'];
 
-export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info'
-export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null
+export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info' | 'suspended';
 
-// POI Categories
+export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null;
+
 export type POICategory = 'historical_site' | 'natural_feature' | 'cultural_site' | 'conservation_site' | 'viewpoint' | 'beach_area';

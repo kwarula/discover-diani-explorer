@@ -2,6 +2,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { PointOfInterest } from "@/types/database";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,49 +57,49 @@ export async function uploadFileToSupabase(
 /**
  * Function to get all Points of Interest
  */
-export async function getAllPOIs(category?: string) {
-  let query = supabase
+export async function getAllPOIs(category?: string): Promise<PointOfInterest[] | null> {
+  let query = (supabase
     .from('points_of_interest')
-    .select('*') as any;
+    .select('*') as any);
   
   if (category) {
     query = query.eq('category', category);
   }
   
-  return await safeQueryFunction(() => query.order('name'));
+  return await safeQueryFunction(() => query.order('name')) as Promise<PointOfInterest[] | null>;
 }
 
 /**
  * Function to get a single Point of Interest by ID
  */
-export async function getPOIById(id: string) {
+export async function getPOIById(id: string): Promise<PointOfInterest | null> {
   return await safeQueryFunction(() => 
-    supabase
+    (supabase
       .from('points_of_interest')
       .select('*')
       .eq('id', id)
-      .single() as any
-  );
+      .single() as any)
+  ) as Promise<PointOfInterest | null>;
 }
 
 /**
  * Function to get Points of Interest near a location
  */
-export async function getPOIsNearLocation(latitude: number, longitude: number, radiusKm: number = 5) {
+export async function getPOIsNearLocation(latitude: number, longitude: number, radiusKm: number = 5): Promise<PointOfInterest[] | null> {
   // This is a simplistic approach to finding nearby POIs
   // A more accurate approach would use PostGIS if available
   const latDegreeDistance = radiusKm / 111; // Approx. 111km per latitude degree
   const lngDegreeDistance = radiusKm / (111 * Math.cos(latitude * Math.PI / 180)); // Adjust for longitude
   
   return await safeQueryFunction(() => 
-    supabase
+    (supabase
       .from('points_of_interest')
       .select('*')
       .gte('latitude', latitude - latDegreeDistance)
       .lte('latitude', latitude + latDegreeDistance)
       .gte('longitude', longitude - lngDegreeDistance)
-      .lte('longitude', longitude + lngDegreeDistance) as any
-  );
+      .lte('longitude', longitude + lngDegreeDistance) as any)
+  ) as Promise<PointOfInterest[] | null>;
 }
 
 /**
