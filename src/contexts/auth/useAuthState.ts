@@ -1,83 +1,66 @@
 
 import { useState, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User } from '@supabase/supabase-js';
 import { Profile } from '@/types/database';
 
 export type AuthState = {
-  session: Session | null;
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  isOperator: boolean;
+  setProfile: (profile: Profile | null) => void;
 };
 
 export const useAuthState = (): AuthState => {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isOperator, setIsOperator] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const resetState = () => {
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setIsAdmin(false);
-    setIsOperator(false);
-  };
-
+  // Subscribe to auth changes
   useEffect(() => {
-    // Initialize with current session
-    const initializeAuth = async () => {
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setIsLoading(true);
+      
+      console.log('Auth state changed:', event, !!session?.user);
+      
+      if (session?.user) {
+        setUser(session.user);
+        await fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      
+      setIsLoading(false);
+    });
+
+    // Initial auth check
+    const initAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          await loadUserProfile(currentSession.user.id);
-          await checkUserRoles(currentSession.user.id);
+        if (session?.user) {
+          setUser(session.user);
+          await fetchUserProfile(session.user.id);
         }
       } catch (error) {
-        console.error('Error initializing auth state:', error);
-        resetState();
+        console.error('Error initializing auth:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializeAuth();
+    initAuth();
 
-    // Subscribe to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (event === 'SIGNED_IN' && newSession) {
-          setSession(newSession);
-          setUser(newSession.user);
-          await loadUserProfile(newSession.user.id);
-          await checkUserRoles(newSession.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          resetState();
-        }
-        
-        // Always update loading state
-        setIsLoading(false);
-      }
-    );
-
-    // Cleanup subscription
     return () => {
-      subscription.unsubscribe();
+      data.subscription.unsubscribe();
     };
   }, []);
 
-  const loadUserProfile = async (userId: string) => {
+  // Fetch user profile from supabase
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // Fetch user profile data
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -85,49 +68,44 @@ export const useAuthState = (): AuthState => {
         .single();
 
       if (error) {
-        console.error('Error loading profile:', error);
+        console.error('Error fetching user profile:', error);
         return;
       }
 
       if (data) {
         setProfile(data as Profile);
+      } else {
+        // If no profile exists, create one
+        await createUserProfile(userId);
       }
     } catch (error) {
-      console.error('Unexpected error loading profile:', error);
+      console.error('Error in fetchUserProfile:', error);
     }
   };
 
-  const checkUserRoles = async (userId: string) => {
+  // Create a new user profile
+  const createUserProfile = async (userId: string) => {
     try {
-      // Check if user is an operator
-      const { data: operatorData, error: operatorError } = await supabase
-        .from('operators')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const newProfile: Partial<Profile> = {
+        id: userId,
+        full_name: user?.user_metadata?.full_name || null,
+      };
 
-      if (!operatorError && operatorData) {
-        setIsOperator(true);
+      const { error } = await supabase
+        .from('profiles')
+        .insert([newProfile]);
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+        return;
       }
 
-      // For now, hardcode admin check - this should be moved to a proper roles table or claims
-      // const isAdminEmail = user?.email === 'admin@example.com';
-      // setIsAdmin(isAdminEmail);
-      
-      // TODO: Implement proper role-based check for admin status
-      
+      // Fetch the newly created profile
+      await fetchUserProfile(userId);
     } catch (error) {
-      console.error('Error checking user roles:', error);
+      console.error('Error in createUserProfile:', error);
     }
   };
 
-  return {
-    session,
-    user,
-    profile,
-    isLoading,
-    isAuthenticated: !!user,
-    isAdmin,
-    isOperator,
-  };
+  return { user, profile, isLoading, setProfile };
 };
