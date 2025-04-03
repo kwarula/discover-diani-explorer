@@ -6,9 +6,9 @@ import { PointOfInterest } from '@/types/database';
 // Function to fetch a single POI by ID
 const fetchPOI = async (id: string): Promise<PointOfInterest | null> => {
   try {
-    // Cast the query to any to bypass TypeScript complaint about points_of_interest
-    const { data, error } = await (supabase
-      .from('points_of_interest') as any)
+    // Cast the query to any to bypass TypeScript complaints
+    const { data, error } = await supabase
+      .from('points_of_interest' as any)
       .select('*')
       .eq('id', id)
       .single();
@@ -28,9 +28,9 @@ const fetchPOI = async (id: string): Promise<PointOfInterest | null> => {
 // Function to fetch POIs by category
 const fetchPOIsByCategory = async (category: string): Promise<PointOfInterest[]> => {
   try {
-    // Cast the query to any to bypass TypeScript complaint about points_of_interest
-    const { data, error } = await (supabase
-      .from('points_of_interest') as any)
+    // Cast the query to any to bypass TypeScript complaints
+    const { data, error } = await supabase
+      .from('points_of_interest' as any)
       .select('*')
       .eq('category', category);
 

@@ -1,186 +1,197 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, Database } from '@/types/database'; // Import Database type
+import { Session, User } from '@supabase/supabase-js';
+import { SubmitHandler } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Provider } from '@supabase/supabase-js';
+import { Profile } from '@/types/database';
 
-export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<Profile | null>>) => {
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
+// Define the result types for authentication operations
+export type AuthResult = {
+  success: boolean;
+  error?: string;
+  data?: {
+    user: User | null;
+    session: Session | null;
+  };
+};
 
-  const signIn = async (email: string, password: string) => {
+export type LoginFormValues = {
+  email: string;
+  password: string;
+};
+
+export type RegisterFormValues = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+  stayDuration?: number;
+  interests?: string[];
+  dietaryPreferences?: string[];
+  isTourist?: boolean; // Added for onboarding flow
+};
+
+export type ProfileFormValues = {
+  fullName?: string;
+  username?: string;
+  stayDuration?: number;
+  interests?: string[];
+  dietaryPreferences?: string[];
+};
+
+export const useAuthMethods = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const signIn = async (email: string, password: string): Promise<AuthResult> => {
+    setIsLoading(true);
     try {
-      setIsSigningIn(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        throw error;
+        toast.error(error.message);
+        return { success: false, error: error.message };
       }
-      
-      toast.success('Successfully signed in');
-      return data;
+
+      toast.success('Signed in successfully!');
+      return { success: true, data };
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while signing in');
-      throw error;
+      toast.error(error.message || 'An error occurred during sign in');
+      return { success: false, error: error.message };
     } finally {
-      setIsSigningIn(false);
+      setIsLoading(false);
     }
   };
 
-  // Update signUp to accept username in userData
-  const signUp = async (email: string, password: string, userData: { full_name: string; username: string; is_tourist?: boolean; stay_duration?: number; interests?: string[] }) => {
+  const signUp = async (email: string, password: string, userData: Partial<RegisterFormValues>): Promise<AuthResult> => {
+    setIsLoading(true);
     try {
-      setIsSigningUp(true);
-      
-      // Register the user
+      // First, create the user account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            // Store username and full_name in auth.users metadata if desired
-            // This can be useful for quick access without joining profiles table initially
-            username: userData.username,
-            full_name: userData.full_name,
-          },
-        },
       });
 
       if (error) {
-        throw error;
+        toast.error(error.message);
+        return { success: false, error: error.message };
       }
 
-      // Create the user profile if we have a user
-      if (data.user) {
-        await createUserProfile(data.user.id, userData);
+      // If user is created, also create a profile
+      if (data?.user) {
+        // Extract profile data from userData
+        const profileData: Partial<Profile> = {
+          id: data.user.id,
+          full_name: userData.fullName,
+          stay_duration: userData.stayDuration,
+          interests: userData.interests,
+          dietary_preferences: userData.dietaryPreferences,
+        };
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([profileData]);
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // We don't want to fail the sign-up if just the profile fails
+          toast.error(`Account created but profile setup failed: ${profileError.message}`);
+        }
       }
 
-      toast.success('Account created successfully. You are now signed in.');
-      return data;
+      toast.success('Signed up successfully! Please check your email for confirmation.');
+      return { success: true, data };
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while creating your account');
-      throw error;
+      toast.error(error.message || 'An error occurred during sign up');
+      return { success: false, error: error.message };
     } finally {
-      setIsSigningUp(false);
+      setIsLoading(false);
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<AuthResult> => {
+    setIsLoading(true);
     try {
-      setIsSigningOut(true);
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        throw error;
+        toast.error(error.message);
+        return { success: false, error: error.message };
       }
       
-      // Clear profile state when user signs out
-      setProfile(null);
-      toast.success('Successfully signed out');
+      toast.success('Signed out successfully!');
+      navigate('/');
+      return { success: true };
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while signing out');
-      throw error;
+      toast.error(error.message || 'An error occurred during sign out');
+      return { success: false, error: error.message };
     } finally {
-      setIsSigningOut(false);
+      setIsLoading(false);
     }
   };
 
-  const updateProfile = async (profileData: Partial<Profile>) => {
-    try {
-      // Use explicit type cast to bypass TypeScript errors with Supabase client
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(profileData as any)
-        .eq('id', profileData.id as string) as any;
-
-      if (error) {
-        throw error;
-      }
-
-      // Update the profile state
-      setProfile(prev => prev ? { ...prev, ...profileData } : null);
-      
-      toast.success('Profile updated successfully');
-      return data;
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred while updating your profile');
-      throw error;
-    }
+  const handleLogin: SubmitHandler<LoginFormValues> = async (data) => {
+    return await signIn(data.email, data.password);
   };
 
-  const signInWithProvider = async (provider: Provider) => {
-    try {
-      // No need for loading state here as Supabase handles the redirect flow
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          // Redirect back to the dashboard after successful OAuth flow
-          redirectTo: `${window.location.origin}/dashboard`, 
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-    } catch (error: any) {
-      toast.error(error.message || `An error occurred while signing in with ${provider}`);
-      throw error;
+  const handleRegister: SubmitHandler<RegisterFormValues> = async (data) => {
+    if (data.password !== data.confirmPassword) {
+      toast.error('Passwords do not match');
+      return { success: false, error: 'Passwords do not match' };
     }
+    
+    return await signUp(data.email, data.password, {
+      fullName: data.fullName,
+      stayDuration: data.stayDuration,
+      interests: data.interests,
+      dietaryPreferences: data.dietaryPreferences,
+    });
   };
 
-  // Helper function to create a user profile
-  // Update createUserProfile to include username and dietary_preferences, remove 'as any'
-  const createUserProfile = async (userId: string, userData: { 
-    full_name: string; 
-    username: string; 
-    is_tourist?: boolean; 
-    stay_duration?: number; // Note: stay_duration from form is string, needs conversion before calling signUp
-    interests?: string[]; 
-    dietary_preferences?: string[]; // Add dietary preferences
-  }) => {
+  const updateProfile = async (userId: string, data: ProfileFormValues): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      // Ensure profileData matches the Database['public']['Tables']['profiles']['Insert'] type
-      const profileData: Database['public']['Tables']['profiles']['Insert'] = {
-        id: userId,
-        username: userData.username || null, // Ensure username can be null if needed, though likely required
-        full_name: userData.full_name || null,
-        // stay_duration needs to be a number or null. Ensure conversion happens before this point.
-        stay_duration: userData.is_tourist ? (userData.stay_duration ?? null) : null, 
-        interests: userData.interests ?? null,
-        dietary_preferences: userData.dietary_preferences ?? null, // Add dietary preferences
-        is_tourist: userData.is_tourist ?? null, 
-        // avatar_url is not collected in registration form, defaults to null
+      // Transform data to match the profiles table structure
+      const profileData = {
+        full_name: data.fullName,
+        username: data.username,
+        stay_duration: data.stayDuration,
+        interests: data.interests,
+        dietary_preferences: data.dietaryPreferences,
       };
 
-      // Remove 'as any' casts for better type checking
       const { error } = await supabase
         .from('profiles')
-        .insert(profileData); // Pass the correctly typed object
+        .update(profileData)
+        .eq('id', userId);
 
       if (error) {
-        // Log the specific Supabase error
-        console.error('Supabase insert error:', error); 
-        throw error; 
+        toast.error(`Failed to update profile: ${error.message}`);
+        return false;
       }
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-      throw error;
+
+      toast.success('Profile updated successfully!');
+      return true;
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while updating profile');
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { 
-    signIn, 
-    signUp, 
-    signOut, 
-    updateProfile, 
-    signInWithProvider, // Destructure the new method here
-    isSigningIn,
-    isSigningUp,
-    isSigningOut
+  return {
+    signIn,
+    signUp,
+    signOut,
+    handleLogin,
+    handleRegister,
+    updateProfile,
+    isLoading,
   };
 };
