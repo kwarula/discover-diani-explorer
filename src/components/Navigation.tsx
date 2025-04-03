@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useMedia } from "react-responsive"; // Changed from use-mobile
+import { useMobile } from "@/hooks/use-mobile"; 
 import { Menu, X } from "lucide-react";
-import { useAuth } from "@/contexts/auth"; // Fixed import
+import { useAuth } from "@/contexts/auth"; 
 import UserMenu from "@/components/UserMenu";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +22,8 @@ export default function Navigation({ className }: { className?: string }) {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isMobile = useMedia({ query: "(max-width: 768px)" }); // Fixed useMedia
-  const { user, loading } = useAuth();
+  const isMobile = useMobile();
+  const { user, isLoading } = useAuth();
 
   // Only show the navigation bar after determining auth state
   const [showNav, setShowNav] = useState(false);
@@ -36,8 +36,8 @@ export default function Navigation({ className }: { className?: string }) {
   };
 
   useEffect(() => {
-    setShowNav(!loading);
-  }, [loading]);
+    setShowNav(!isLoading);
+  }, [isLoading]);
 
   useEffect(() => {
     const handleScroll = () => {

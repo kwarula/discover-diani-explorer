@@ -1,12 +1,15 @@
 
 import { useMediaQuery } from 'react-responsive';
 
-// Re-export the hook under a different name for backward compatibility
+// Export the useMediaQuery hook for backward compatibility
 export const useMedia = useMediaQuery;
 
-// Default mobile check
+// Export a convenience hook for mobile detection
 export const useMobile = () => {
   return useMediaQuery({ query: '(max-width: 768px)' });
 };
+
+// Alias for consistency with sidebar component naming
+export const useIsMobile = useMobile;
 
 export default useMobile;
