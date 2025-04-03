@@ -1,51 +1,105 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react'; // Added useEffect, useMemo
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Star, Clock, Users, Filter } from "lucide-react";
+import { Calendar, MapPin, Star, Clock, Users, Filter, Loader2, Info } from "lucide-react"; // Added Loader2, Info
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from '@/integrations/supabase/client'; // Added
+import { Tables } from '@/types/database'; // Added
+import { Link } from 'react-router-dom'; // Added Link
+
+// Define available categories for filtering (could be fetched dynamically)
+const activityCategories = [
+  { id: 'watersports', name: 'Water Sports' },
+  { id: 'wildlife', name: 'Wildlife & Nature' },
+  { id: 'cultural', name: 'Cultural Tours' },
+  { id: 'adventure', name: 'Adventure' },
+  { id: 'relaxation', name: 'Relaxation' }
+];
 
 const ActivitiesPage = () => {
-  const [priceRange, setPriceRange] = useState([0, 200]);
-  const [filteredActivities, setFilteredActivities] = useState(activities);
+  const [allActivities, setAllActivities] = useState<Tables<'listings'>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter state
+  const [priceRange, setPriceRange] = useState([0, 15000]); // Increased range for KES
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // Add state for other filters like duration, group size if needed
+
+  // Fetch activities (listings with category 'activity')
+  useEffect(() => {
+    const fetchActivities = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Explicitly select columns to ensure type alignment
+        const listingsColumns = `
+          id, category, created_at, description, featured, guide_recommended,
+          images, is_verified, location, price, price_range, price_unit, status,
+          sub_category, tide_dependency, title, transport_instructions, updated_at,
+          user_id, wildlife_notice
+        `;
+        const { data, error: dbError } = await supabase
+          .from('listings' as any) // Workaround for persistent type issue
+          .select(listingsColumns) // Use explicit columns
+          .eq('category', 'activity') // Filter by category 'activity'
+          .order('featured', { ascending: false })
+          .order('title');
+
+        console.log("Fetched Activities Raw:", { data, dbError }); // Log raw data
+
+        if (dbError) throw dbError;
+        setAllActivities((data as Tables<'listings'>[]) || []);
+      } catch (err: any) {
+        console.error("Error fetching activities:", err);
+        setError("Failed to load activities. Please try again later.");
+        setAllActivities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  // Memoized filtered activities
+  const filteredActivities = useMemo(() => {
+    const filtered = allActivities.filter(activity => {
+      // Category filter
+      if (selectedCategories.length > 0 && !selectedCategories.includes(activity.sub_category || '')) {
+         // Assuming sub_category holds 'watersports', 'wildlife' etc. Adjust if needed.
+        return false;
+      }
+      // Price filter (check if price exists)
+      if (activity.price !== null && (activity.price < priceRange[0] || activity.price > priceRange[1])) {
+        return false;
+      }
+      // Add other filters here (duration, group size etc. - requires adding these fields to listings table)
+      return true;
+    });
+    console.log("Filtered Activities:", filtered); // Log filtered data
+    return filtered;
+  }, [allActivities, selectedCategories, priceRange]);
 
   const handlePriceChange = (value: number[]) => {
     setPriceRange(value);
-    filterActivities(selectedCategories, value);
+    // Filtering is handled by useMemo
   };
 
-  const handleCategoryChange = (category: string) => {
-    const updatedCategories = selectedCategories.includes(category)
-      ? selectedCategories.filter(c => c !== category)
-      : [...selectedCategories, category];
-    
-    setSelectedCategories(updatedCategories);
-    filterActivities(updatedCategories, priceRange);
-  };
-
-  const filterActivities = (categories: string[], priceRange: number[]) => {
-    let filtered = activities;
-    
-    // Filter by categories if any are selected
-    if (categories.length > 0) {
-      filtered = filtered.filter(activity => 
-        categories.includes(activity.category)
-      );
-    }
-    
-    // Filter by price range
-    filtered = filtered.filter(
-      activity => activity.price >= priceRange[0] && activity.price <= priceRange[1]
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(c => c !== categoryId)
+        : [...prev, categoryId]
     );
-    
-    setFilteredActivities(filtered);
+     // Filtering is handled by useMemo
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -92,30 +146,31 @@ const ActivitiesPage = () => {
                 <div className="space-y-6">
                   {/* Price Range Filter */}
                   <div>
-                    <h3 className="text-lg font-medium mb-3">Price Range</h3>
+                    <h3 className="text-lg font-medium mb-3">Price Range (KES)</h3> {/* Changed label to KES */}
                     <div className="px-2">
-                      <Slider 
-                        defaultValue={[0, 200]} 
-                        max={200} 
-                        step={10}
+                      <Slider
+                        value={priceRange} // Use controlled component value
+                        max={15000} // Increased max for KES
+                        step={500} // Adjusted step
                         onValueChange={handlePriceChange}
                         className="mb-4"
                       />
                       <div className="flex justify-between text-sm text-gray-500">
-                        <span>${priceRange[0]}</span>
-                        <span>${priceRange[1]}</span>
+                        <span>{priceRange[0]} KES</span> {/* Changed label to KES */}
+                        <span>{priceRange[1]} KES</span> {/* Changed label to KES */}
                       </div>
                     </div>
                   </div>
                   
                   {/* Category Filter */}
+                  {/* Category Filter - Use sub_category from listings */}
                   <div>
                     <h3 className="text-lg font-medium mb-3">Categories</h3>
                     <div className="space-y-2">
-                      {categories.map((category) => (
+                      {activityCategories.map((category) => (
                         <div key={category.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`category-${category.id}`} 
+                          <Checkbox
+                            id={`category-${category.id}`}
                             checked={selectedCategories.includes(category.id)}
                             onCheckedChange={() => handleCategoryChange(category.id)}
                           />
@@ -124,87 +179,84 @@ const ActivitiesPage = () => {
                       ))}
                     </div>
                   </div>
-                  
-                  {/* Duration Filter */}
-                  <div>
+
+                  {/* TODO: Add Duration Filter if data available */}
+                  {/* <div>
                     <h3 className="text-lg font-medium mb-3">Duration</h3>
-                    <div className="space-y-2">
-                      {durations.map((duration) => (
-                        <div key={duration.value} className="flex items-center space-x-2">
-                          <Checkbox id={`duration-${duration.value}`} />
-                          <Label htmlFor={`duration-${duration.value}`}>{duration.label}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Group Size Filter */}
-                  <div>
+                    ...
+                  </div> */}
+
+                  {/* TODO: Add Group Size Filter if data available */}
+                  {/* <div>
                     <h3 className="text-lg font-medium mb-3">Group Size</h3>
-                    <div className="space-y-2">
-                      {groupSizes.map((size) => (
-                        <div key={size.value} className="flex items-center space-x-2">
-                          <Checkbox id={`size-${size.value}`} />
-                          <Label htmlFor={`size-${size.value}`}>{size.label}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                    ...
+                  </div> */}
                 </div>
               </div>
             </div>
             
             {/* Activities List */}
             <div className="lg:col-span-3">
-              <Tabs defaultValue="all" className="w-full">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-display font-bold text-ocean-dark">
-                    Available Activities
-                    <span className="ml-2 text-sm font-normal text-gray-500">
-                      ({filteredActivities.length} activities)
-                    </span>
-                  </h2>
-                  <TabsList className="bg-gray-100 p-1">
-                    <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
-                      All
-                    </TabsTrigger>
-                    <TabsTrigger value="featured" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
-                      Featured
-                    </TabsTrigger>
-                    <TabsTrigger value="popular" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
-                      Popular
-                    </TabsTrigger>
-                  </TabsList>
+              {/* Loading State */}
+              {loading && (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-12 w-12 animate-spin text-ocean-light" />
                 </div>
-                
-                <TabsContent value="all" className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredActivities.map((activity, index) => (
-                      <ActivityCard key={index} activity={activity} />
-                    ))}
+              )}
+              {/* Error State */}
+              {error && <p className="text-center text-red-600 py-20">{error}</p>}
+
+              {/* Content */}
+              {!loading && !error && (
+                <Tabs defaultValue="all" className="w-full">
+                  <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+                    <h2 className="text-2xl font-display font-bold text-ocean-dark">
+                      Available Activities
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({filteredActivities.length} found)
+                      </span>
+                    </h2>
+                    {/* Tabs for sorting/viewing - Keep or simplify as needed */}
+                    <TabsList className="bg-gray-100 p-1">
+                      <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
+                        All
+                      </TabsTrigger>
+                      <TabsTrigger value="featured" className="data-[state=active]:bg-white data-[state=active]:text-ocean">
+                        Featured
+                      </TabsTrigger>
+                      {/* Add other tabs like 'Popular' based on rating if available */}
+                    </TabsList>
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="featured" className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredActivities
-                      .filter(activity => activity.featured)
-                      .map((activity, index) => (
-                        <ActivityCard key={index} activity={activity} />
-                      ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="popular" className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredActivities
-                      .filter(activity => activity.rating >= 4.7)
-                      .map((activity, index) => (
-                        <ActivityCard key={index} activity={activity} />
-                      ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
+
+                  {/* Display filtered activities */}
+                  <TabsContent value="all" className="mt-6">
+                     {filteredActivities.length > 0 ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {filteredActivities.map((activity) => (
+                           <ActivityCard key={activity.id} listing={activity} /> // Pass listing data
+                         ))}
+                       </div>
+                     ) : (
+                       <p className="text-center text-gray-500 py-10">No activities match the current filters.</p>
+                     )}
+                  </TabsContent>
+
+                  <TabsContent value="featured" className="mt-6">
+                     {filteredActivities.filter(a => a.featured).length > 0 ? (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {filteredActivities
+                           .filter(activity => activity.featured)
+                           .map((activity) => (
+                             <ActivityCard key={activity.id} listing={activity} /> // Pass listing data
+                           ))}
+                       </div>
+                      ) : (
+                       <p className="text-center text-gray-500 py-10">No featured activities match the current filters.</p>
+                     )}
+                  </TabsContent>
+                  {/* Add other TabsContent if needed */}
+                </Tabs>
+              )}
             </div>
           </div>
         </div>
@@ -231,214 +283,81 @@ const ActivitiesPage = () => {
   );
 };
 
-// Activity Card Component
-const ActivityCard = ({ activity }) => {
+// Updated Activity Card Component to use listing data and link to detail page
+const ActivityCard = ({ listing }: { listing: Tables<'listings'> }) => {
+  const imageUrl = listing.images?.[0] || '/placeholder.svg'; // Use first image or placeholder
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-52">
-        <img 
-          src={activity.image} 
-          alt={activity.title}
+    <Link to={`/listing/${listing.id}`} className="block group"> {/* Wrap card in Link */}
+      <Card className="overflow-hidden group-hover:shadow-lg transition-shadow duration-300 h-full flex flex-col"> {/* Added styles */}
+        <div className="relative h-52 shrink-0"> {/* Added shrink-0 */}
+          <img
+          src={imageUrl}
+          alt={listing.title ?? 'Activity image'}
           className="w-full h-full object-cover"
         />
-        {activity.featured && (
+        {listing.featured && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-coral text-white">Featured</Badge>
           </div>
         )}
+         {listing.is_verified && ( // Display verified badge if applicable
+           <div className="absolute top-2 left-2">
+             <Badge className="bg-blue-600 text-white">Verified</Badge>
+           </div>
+         )}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
           <div className="flex items-center text-white">
-            <Badge className="bg-white/20 border-none">${activity.price}</Badge>
-            <span className="mx-2">•</span>
+            {listing.price !== null && (
+              <Badge className="bg-white/20 border-none">${listing.price}{listing.price_unit ? `/${listing.price_unit}` : ''}</Badge>
+            )}
+            {/* TODO: Add duration display if available */}
+            {/* <span className="mx-2">•</span>
             <div className="flex items-center text-sm">
               <Clock size={14} className="mr-1" />
-              <span>{activity.duration}</span>
-            </div>
+              <span>{listing.duration}</span>
+            </div> */}
           </div>
         </div>
       </div>
       <CardContent className="p-5">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-display font-semibold text-lg text-ocean-dark">{activity.title}</h3>
-          <div className="flex items-center text-sm">
+          <h3 className="font-display font-semibold text-lg text-ocean-dark">{listing.title}</h3>
+          {/* TODO: Add rating display if available */}
+          {/* <div className="flex items-center text-sm">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-            <span>{activity.rating}</span>
-          </div>
+            <span>{listing.rating}</span>
+          </div> */}
         </div>
         <div className="flex items-center text-gray-500 text-sm mb-3">
           <MapPin size={14} className="mr-1" />
-          <span>{activity.location}</span>
-          {activity.groupSize && (
+          <span>{listing.location || 'Diani Beach'}</span>
+           {/* TODO: Add group size display if available */}
+          {/* {listing.groupSize && (
             <>
               <span className="mx-2">•</span>
               <Users size={14} className="mr-1" />
-              <span>Up to {activity.groupSize} people</span>
+              <span>Up to {listing.groupSize} people</span>
             </>
-          )}
+          )} */}
         </div>
-        <p className="text-gray-600 text-sm mb-4">{activity.description}</p>
-        <Button variant="outline" className="w-full text-ocean border-ocean hover:bg-ocean hover:text-white">
-          Book Now
-        </Button>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-3">{listing.description || 'No description available.'}</p>
+        {listing.guide_recommended && ( // Display Guide Recommended flag
+          <div className="flex items-center text-xs text-blue-600 mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+            <Info size={14} className="mr-1 flex-shrink-0" />
+            <span>Guided Tour Highly Recommended</span>
+          </div>
+        )}
+        {/* Button removed as the whole card is a link */}
+        <div className="mt-auto pt-2 text-right text-sm text-ocean group-hover:underline">
+            View Details &rarr;
+         </div>
       </CardContent>
     </Card>
+    </Link>
   );
 };
 
-// Sample Data
-const categories = [
-  { id: 'watersports', name: 'Water Sports' },
-  { id: 'wildlife', name: 'Wildlife & Nature' },
-  { id: 'cultural', name: 'Cultural Tours' },
-  { id: 'adventure', name: 'Adventure' },
-  { id: 'relaxation', name: 'Relaxation' }
-];
-
-const durations = [
-  { value: 'half-day', label: 'Half Day (1-4 hrs)' },
-  { value: 'full-day', label: 'Full Day (5-8 hrs)' },
-  { value: 'multi-day', label: 'Multi-Day' }
-];
-
-const groupSizes = [
-  { value: 'small', label: 'Small (1-5 people)' },
-  { value: 'medium', label: 'Medium (6-12 people)' },
-  { value: 'large', label: 'Large (12+ people)' }
-];
-
-const activities = [
-  {
-    title: "Diani Reef Snorkeling Tour",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    price: 45,
-    duration: "3 hours",
-    rating: 4.8,
-    location: "Diani Marine Reserve",
-    description: "Explore vibrant coral reefs and diverse marine life in the crystal clear waters of Diani Beach.",
-    featured: true,
-    groupSize: 8,
-    category: 'watersports'
-  },
-  {
-    title: "Kitesurfing Lesson for Beginners",
-    image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    price: 85,
-    duration: "2 hours",
-    rating: 4.9,
-    location: "Galu Beach",
-    description: "Learn the basics of kitesurfing with professional instructors in one of Africa's best kitesurfing spots.",
-    featured: false,
-    groupSize: 4,
-    category: 'watersports'
-  },
-  {
-    title: "Sunset Dhow Cruise",
-    image: "https://images.unsplash.com/photo-1590523278191-599c9f67fcb5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80",
-    price: 60,
-    duration: "2.5 hours",
-    rating: 4.7,
-    location: "Diani Beach",
-    description: "Sail on a traditional wooden dhow as the sun sets over the Indian Ocean. Includes refreshments and snacks.",
-    featured: true,
-    groupSize: 12,
-    category: 'relaxation'
-  },
-  {
-    title: "Colobus Monkey Forest Tour",
-    image: "https://images.unsplash.com/photo-1594128597047-ab2801b1e6bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80",
-    price: 30,
-    duration: "3 hours",
-    rating: 4.6,
-    location: "Diani Forest",
-    description: "Guided walking tour to observe the endangered Angolan Colobus monkeys in their natural habitat.",
-    featured: false,
-    groupSize: 10,
-    category: 'wildlife'
-  },
-  {
-    title: "Deep Sea Fishing Expedition",
-    image: "https://images.unsplash.com/photo-1545508775-0fb0b48ab3af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80",
-    price: 150,
-    duration: "6 hours",
-    rating: 4.8,
-    location: "Indian Ocean",
-    description: "Full day deep sea fishing trip targeting marlin, sailfish, and tuna with experienced local fishermen.",
-    featured: false,
-    groupSize: 6,
-    category: 'adventure'
-  },
-  {
-    title: "Traditional Mijikenda Village Visit",
-    image: "https://images.unsplash.com/photo-1591142890700-87a965e9b242?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80",
-    price: 40,
-    duration: "4 hours",
-    rating: 4.7,
-    location: "Kinondo Village",
-    description: "Immerse yourself in local culture with a visit to a traditional Mijikenda village. Learn about customs and daily life.",
-    featured: true,
-    groupSize: 8,
-    category: 'cultural'
-  },
-  {
-    title: "Shimba Hills Wildlife Safari",
-    image: "https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    price: 120,
-    duration: "8 hours",
-    rating: 4.5,
-    location: "Shimba Hills National Reserve",
-    description: "Full-day safari to spot elephants, buffalo and antelopes in Kenya's coastal national reserve.",
-    featured: false,
-    groupSize: 7,
-    category: 'wildlife'
-  },
-  {
-    title: "Stand Up Paddleboarding",
-    image: "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    price: 35,
-    duration: "1.5 hours",
-    rating: 4.6,
-    location: "Diani Lagoon",
-    description: "Learn to paddleboard in the calm waters of Diani Beach lagoon. Perfect for beginners and families.",
-    featured: false,
-    groupSize: 6,
-    category: 'watersports'
-  },
-  {
-    title: "Kaya Kinondo Sacred Forest Walk",
-    image: "https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    price: 25,
-    duration: "2 hours",
-    rating: 4.4,
-    location: "Kinondo, South Diani",
-    description: "Guided tour through the sacred Kaya forest with a local Mijikenda guide explaining cultural significance.",
-    featured: false,
-    groupSize: 10,
-    category: 'cultural'
-  },
-  {
-    title: "Diani Beach Yoga Retreat",
-    image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    price: 20,
-    duration: "1 hour",
-    rating: 4.9,
-    location: "Diani Beach",
-    description: "Beachfront yoga session at sunrise or sunset with experienced instructors. All levels welcome.",
-    featured: true,
-    groupSize: 12,
-    category: 'relaxation'
-  },
-  {
-    title: "Skydiving Adventure",
-    image: "https://images.unsplash.com/photo-1601024445121-e5b82f020549?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    price: 200,
-    duration: "3 hours",
-    rating: 4.9,
-    location: "Diani Beach Airstrip",
-    description: "Experience the ultimate adrenaline rush with a tandem skydive over the stunning Diani coastline.",
-    featured: true,
-    groupSize: 2,
-    category: 'adventure'
-  }
-];
+// Remove static sample data arrays (categories, durations, groupSizes, activities)
 
 export default ActivitiesPage;

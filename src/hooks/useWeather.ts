@@ -110,7 +110,7 @@ const useWeather = (): UseWeatherResult => {
         variant: "destructive"
       });
     } else {
-        const params = 'airTemperature,weatherIcon'; // Request air temp and icon
+        const params = 'airTemperature'; // Only request air temperature
         const now = new Date();
         const start = startOfDay(addDays(now, 1)).toISOString(); // Start from tomorrow midnight UTC
         const end = endOfDay(addDays(now, 3)).toISOString(); // End 3 days from now midnight UTC
@@ -129,14 +129,14 @@ const useWeather = (): UseWeatherResult => {
                     dailyData[dateStr] = { temps: [], icons: [] };
                 }
                 // Stormglass returns temp in Celsius by default
-                if (hour.airTemperature?.sg) {
-                   dailyData[dateStr].temps.push(hour.airTemperature.sg);
-                }
-                 // Stormglass weatherIcon is numerical, not useful directly for display
-                 // We'll use temperature for description instead.
-            });
+                 // Check for null/undefined explicitly before pushing
+                 if (hour.airTemperature?.sg != null) { 
+                    dailyData[dateStr].temps.push(hour.airTemperature.sg);
+                 }
+                 // Removed weatherIcon handling as it's not requested or used
+             });
 
-            forecastData = Object.keys(dailyData).map(dateStr => {
+             forecastData = Object.keys(dailyData).map(dateStr => {
                 const dayTemps = dailyData[dateStr].temps;
                 const avgTemp = dayTemps.length > 0
                     ? Math.round(dayTemps.reduce((a, b) => a + b, 0) / dayTemps.length)

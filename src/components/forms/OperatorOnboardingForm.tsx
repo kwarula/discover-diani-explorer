@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MultiSelect, OptionType } from "@/components/ui/multi-select"; // Added MultiSelect and OptionType import
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -44,6 +45,7 @@ const onboardingSchema = z.object({
 
   // Step 3: Listing Details & Services
   description: z.string().min(50, { message: "Please provide a detailed description (min 50 characters)." }),
+  specialties: z.array(z.string()).optional(), // Stores array of strings (values)
   keyOfferings: z.array(z.string()).optional(), // Example: using multi-select or tags later
   categories: z.array(z.string()).optional(), // Example
   priceRange: z.string().optional(), // Example: $, $$, $$$
@@ -64,6 +66,26 @@ const onboardingSchema = z.object({
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+
+// Define options for the specialties MultiSelect (as OptionType[])
+const operatorSpecialtyOptions: OptionType[] = [
+  { value: 'Tuk-tuk Driver', label: 'Tuk-tuk Driver' },
+  { value: 'Moto Taxi (Boda-boda)', label: 'Moto Taxi (Boda-boda)' },
+  { value: 'Taxi Driver', label: 'Taxi Driver' },
+  { value: 'Car Hire', label: 'Car Hire' },
+  { value: 'Tour Guide (General)', label: 'Tour Guide (General)' },
+  { value: 'Tour Guide (Historical)', label: 'Tour Guide (Historical)' },
+  { value: 'Tour Guide (Wildlife)', label: 'Tour Guide (Wildlife)' },
+  { value: 'Tour Guide (Cultural)', label: 'Tour Guide (Cultural)' },
+  { value: 'Watersports Instructor', label: 'Watersports Instructor' },
+  { value: 'Diving Instructor', label: 'Diving Instructor' },
+  { value: 'Kitesurfing Instructor', label: 'Kitesurfing Instructor' },
+  { value: 'Accommodation Host', label: 'Accommodation Host' },
+  { value: 'Restaurant Chef/Owner', label: 'Restaurant Chef/Owner' },
+  { value: 'Shop Owner', label: 'Shop Owner' },
+  { value: 'Local Artisan', label: 'Local Artisan' },
+  { value: 'Other Service Provider', label: 'Other Service Provider' },
+];
 
 const TOTAL_STEPS = 5;
 const MAP_CONTAINER_STYLE = { height: '400px', width: '100%' }; // Style for map container
@@ -91,6 +113,7 @@ const OperatorOnboardingForm: React.FC = () => {
       serviceAreaDescription: "",
       operatingHours: "",
       description: "",
+      specialties: [], // Default value remains string array
       keyOfferings: [],
       categories: [],
       priceRange: undefined,
@@ -199,6 +222,7 @@ const OperatorOnboardingForm: React.FC = () => {
         key_offerings: values.keyOfferings, // Assuming these are handled correctly by form inputs later
         categories: values.categories,
         price_range: values.priceRange,
+        specialties: values.specialties, // Added specialties (already string[])
         logo_url: logoUrl,
         cover_photo_url: coverPhotoUrl,
         status: 'pending_verification', // Initial status
@@ -274,7 +298,7 @@ const OperatorOnboardingForm: React.FC = () => {
     if (currentStep === 1) fieldsToValidate = ['businessName', 'businessType', 'contactPersonName', 'contactEmail', 'contactPhone'];
     // Validate mapCoordinates in step 2 (optional for now, but trigger validation if set)
     if (currentStep === 2) fieldsToValidate = ['addressArea', 'mapCoordinates'];
-    if (currentStep === 3) fieldsToValidate = ['description'];
+    if (currentStep === 3) fieldsToValidate = ['description', 'specialties']; // Added specialties validation trigger
     // Add validation triggers for steps 4 & 5 if needed (e.g., required uploads)
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -376,12 +400,47 @@ const OperatorOnboardingForm: React.FC = () => {
             {currentStep === 3 && (
               <div className="space-y-4">
                  <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Detailed Business Description</FormLabel><FormControl><Textarea placeholder="Tell customers what makes your business special (min 50 characters)..." {...field} rows={5} /></FormControl><FormDescription>Use formatting and details to attract customers.</FormDescription><FormMessage /></FormItem> )} />
+
+                 {/* Specialties Field using MultiSelect */}
+                 <FormField
+                    control={form.control}
+                    name="specialties"
+                    render={({ field }) => {
+                      // Map string[] from form state to OptionType[] for MultiSelect value prop
+                      const selectedOptions = (field.value || []).map(val =>
+                        operatorSpecialtyOptions.find(opt => opt.value === val)
+                      ).filter((opt): opt is OptionType => !!opt); // Filter out undefined if a value doesn't match an option
+
+                      return (
+                        <FormItem>
+                          <FormLabel>Specialties / Operator Type</FormLabel>
+                          <FormControl>
+                             <MultiSelect
+                                options={operatorSpecialtyOptions}
+                                value={selectedOptions} // Use the mapped OptionType[]
+                                onChange={(selected: OptionType[]) => {
+                                  // Map selected OptionType[] back to string[] for form state
+                                  field.onChange(selected.map(opt => opt.value));
+                                }}
+                                placeholder="Select specialties..."
+                                className="w-full" // Adjust styling as needed
+                             />
+                          </FormControl>
+                          <FormDescription>Select all that apply (e.g., Tuk-tuk Driver, Tour Guide).</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+
                  {/* Key Offerings/Categories - Placeholder - Needs better UI (MultiSelect, Checkboxes, TagsInput) */}
+                 {/* Consider removing or combining with Specialties if redundant */}
                  <FormItem>
                    <FormLabel>Key Offerings / Services (Optional)</FormLabel>
-                   <FormControl><Input placeholder="e.g., Seafood, Guided Tours, Airport Transfers (comma-separated)" /></FormControl>
-                   <FormDescription>Helps users filter and find you.</FormDescription>
+                   <FormControl><Input placeholder="e.g., Seafood, Airport Transfers (comma-separated)" /></FormControl>
+                   <FormDescription>Specific services offered.</FormDescription>
                  </FormItem>
+
                  <FormField control={form.control} name="priceRange" render={({ field }) => ( <FormItem><FormLabel>Price Indication (Optional)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select price range..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="$">$ (Budget)</SelectItem><SelectItem value="$$">$$ (Mid-range)</SelectItem><SelectItem value="$$$">$$$ (Premium)</SelectItem></SelectContent></Select><FormDescription>Give customers a general idea of your pricing.</FormDescription><FormMessage /></FormItem> )} />
               </div>
             )}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,23 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { useAuth } from '@/contexts/auth'; // Import useAuth
 
-// Mock registration function - would connect to backend in production
-const registerUser = async (userData: any) => {
-  console.log('Registering user:', userData);
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 1000);
-  });
-};
+// Remove mock function
+// const registerUser = async (userData: any) => { ... };
 
 const RegistrationForm = ({ onComplete }: { onComplete: () => void }) => {
+  const { signUp, isSigningUp } = useAuth(); // Get signUp and loading state
   const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Use isSigningUp from useAuth instead of local isSubmitting
+  // const [isSubmitting, setIsSubmitting] = useState(false); 
   const [formData, setFormData] = useState({
     name: '',
+    username: '', // Add username state
     email: '',
     password: '',
     isTourist: 'yes',
@@ -82,15 +77,40 @@ const RegistrationForm = ({ onComplete }: { onComplete: () => void }) => {
       return;
     }
     
-    setIsSubmitting(true);
-    try {
-      await registerUser(formData);
-      onComplete();
+     // No need for local setIsSubmitting(true) here, useAuth handles it
+     try {
+       // Prepare data for signUp, converting stayDuration
+       let stayDurationNum: number | null = null;
+       if (formData.isTourist === 'yes') {
+         if (formData.stayDuration === '15+') {
+           stayDurationNum = 15; // Or handle as a special case/max value if needed
+         } else {
+           const parts = formData.stayDuration.split('-');
+           if (parts.length === 2) {
+             stayDurationNum = parseInt(parts[1], 10); // Use radix 10
+             if (isNaN(stayDurationNum)) {
+               stayDurationNum = null; // Handle parsing errors
+             }
+           }
+         }
+       }
+       
+       await signUp(formData.email, formData.password, { 
+         full_name: formData.name, 
+         username: formData.username,
+         is_tourist: formData.isTourist === 'yes',
+         stay_duration: stayDurationNum, // Pass converted number or null
+         interests: formData.interests,
+         dietary_preferences: formData.dietaryPreferences, // Pass dietary preferences
+         // activityPreferences are not currently stored in the profile, so not passed
+       });
+       onComplete(); // Call onComplete after successful signup
     } catch (error) {
-      console.error('Registration error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+      // Error handling is likely done within useAuthMethods (toast messages)
+      // You might add additional specific error handling here if needed
+      console.error('Registration form error:', error); 
+    } 
+    // No need for finally block to set loading state, useAuth handles it
   };
 
   const renderStep = () => {
@@ -116,6 +136,21 @@ const RegistrationForm = ({ onComplete }: { onComplete: () => void }) => {
                 />
               </div>
               
+              <div className="space-y-2">
+                 <Label htmlFor="username">Username</Label>
+                 <Input
+                   id="username"
+                   name="username"
+                   value={formData.username}
+                   onChange={handleInputChange}
+                   placeholder="Choose a unique username"
+                   required
+                   // Add pattern for validation if desired
+                   // pattern="^[a-zA-Z0-9_]{3,20}$" 
+                   // title="Username must be 3-20 characters and contain only letters, numbers, and underscores."
+                 />
+               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -361,10 +396,10 @@ const RegistrationForm = ({ onComplete }: { onComplete: () => void }) => {
             <Button 
               type="submit"
               className="bg-ocean hover:bg-ocean-dark"
-              disabled={isSubmitting}
+              disabled={isSigningUp} // Use isSigningUp for disabled state
             >
               {step === totalSteps ? (
-                isSubmitting ? 'Creating Account...' : 'Complete Registration'
+                isSigningUp ? 'Creating Account...' : 'Complete Registration' // Use isSigningUp for loading text
               ) : (
                 <span className="flex items-center gap-1">
                   Next

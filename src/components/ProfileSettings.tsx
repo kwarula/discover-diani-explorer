@@ -23,6 +23,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Define form validation schema
 const profileFormSchema = z.object({
+  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }).max(20, { message: 'Username cannot exceed 20 characters.' }).regex(/^[a-zA-Z0-9_]+$/, { message: 'Username can only contain letters, numbers, and underscores.' }),
   full_name: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
   stay_duration: z.number().int().min(1).max(365).nullish(),
   interests: z.array(z.string()).nullable(),
@@ -66,12 +67,34 @@ const ProfileSettings = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
+      username: profile?.username || '', // Add username default value
       full_name: profile?.full_name || '',
       stay_duration: profile?.stay_duration || null,
       interests: profile?.interests || [],
       dietary_preferences: profile?.dietary_preferences || [],
     },
+    // Re-initialize form when profile data loads/changes
+    values: profile ? {
+      username: profile.username || '',
+      full_name: profile.full_name || '',
+      stay_duration: profile.stay_duration || null,
+      interests: profile.interests || [],
+      dietary_preferences: profile.dietary_preferences || [],
+    } : undefined,
   });
+
+  // Reset form if profile data changes after initial load
+  React.useEffect(() => {
+    if (profile) {
+      form.reset({
+        username: profile.username || '',
+        full_name: profile.full_name || '',
+        stay_duration: profile.stay_duration || null,
+        interests: profile.interests || [],
+        dietary_preferences: profile.dietary_preferences || [],
+      });
+    }
+  }, [profile, form.reset]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     if (!profile?.id) {
@@ -125,6 +148,20 @@ const ProfileSettings = () => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+             <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your unique username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="full_name"

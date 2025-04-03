@@ -1,7 +1,11 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom'; // Import Link first
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import { useMarketListings, MarketListing } from '@/hooks/useMarketListings'; // Import hook and type
+import { useVerifiedVendors, VerifiedVendor } from '@/hooks/useVerifiedVendors'; // Import hook and type
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +13,131 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Star, Home, Car, ShoppingBag, Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Link } from 'react-router-dom'; // Import Link
-
 const Market = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all'); // State for hero category filter
+  const [activeTab, setActiveTab] = useState<string>('property'); // State for active tab
+  const [sortBy, setSortBy] = useState<string>('newest'); // State for sorting option
+
+  // Fetch listings based on active tab, search, and sort
+  const { 
+    listings, 
+    loading: listingsLoading, 
+    error: listingsError 
+    // refetch: refetchListings // Optional: get refetch function if needed
+  } = useMarketListings({ 
+    category: activeTab === 'all' ? null : activeTab, // Pass active tab as category
+    searchQuery: searchQuery || null, 
+    sortBy: sortBy as 'newest' | 'price-asc' | 'price-desc' | 'rating' | null, // Type assertion
+  });
+
+  // Fetch verified vendors
+  const { 
+    vendors, 
+    loading: vendorsLoading, 
+    error: vendorsError 
+    // refetch: refetchVendors // Optional: get refetch function if needed
+  } = useVerifiedVendors({ limit: 6 }); // Fetch 6 vendors
+
+  // --- Handler Functions ---
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    // Hook refetches automatically due to dependency change
+  };
+
+  const handleSearchSubmit = () => {
+    // Primarily for UX or if specific action needed on button click
+    console.log("Searching for:", searchQuery, "in category:", categoryFilter);
+    // Set active tab based on the filter dropdown selection when search is clicked
+    if (categoryFilter !== 'all') {
+      setActiveTab(categoryFilter);
+    }
+    // Hook will refetch due to state changes (searchQuery or activeTab)
+  };
   
+  const handleCategoryFilterChange = (value: string) => {
+    setCategoryFilter(value);
+    // Don't change activeTab here, wait for search submit or tab click
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Reset category filter dropdown if a tab is explicitly clicked? Optional.
+    // setCategoryFilter('all'); 
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+  };
+
+  // --- Rendering Helpers ---
+
+  // Helper function to render listing cards or skeletons
+  const renderListingCards = (items: MarketListing[]) => {
+    if (listingsLoading) {
+      return Array.from({ length: 3 }).map((_, index) => (
+        <Skeleton key={index} className="h-[350px] w-full rounded-lg" /> // Adjust height
+      ));
+    }
+    if (listingsError) {
+      return <p className="text-red-500 col-span-full">Error loading listings: {listingsError.message}</p>;
+    }
+    if (!items || items.length === 0) {
+      return <p className="text-gray-500 col-span-full">No listings found matching your criteria.</p>;
+    }
+    // Ensure items is an array before mapping
+    if (!Array.isArray(items)) {
+       console.error("renderListingCards received non-array:", items);
+       return <p className="text-red-500 col-span-full">Error displaying listings.</p>;
+    }
+    return items.map((item) => (
+      // Use Link to wrap the card for navigation (adjust props later)
+      <Link to={`/market/listing/${item.id}`} key={item.id} className="block"> 
+         <MarketCard item={item} type={item.category || 'unknown'} /> 
+      </Link>
+    ));
+  };
+
+  // Helper function to render vendor cards or skeletons
+  const renderVendorCards = (vendorItems: VerifiedVendor[]) => {
+     if (vendorsLoading) {
+       return Array.from({ length: 6 }).map((_, index) => (
+         <div key={index} className="flex flex-col items-center text-center w-32">
+            <Skeleton className="w-20 h-20 rounded-full mb-3" />
+            <Skeleton className="h-4 w-24 mb-1" />
+            <Skeleton className="h-4 w-20" />
+         </div>
+       ));
+     }
+     if (vendorsError) {
+       return <p className="text-red-500">Error loading vendors: {vendorsError.message}</p>;
+     }
+     if (!vendorItems || vendorItems.length === 0) {
+       return <p className="text-gray-500">No verified vendors found.</p>;
+     }
+     // Ensure vendorItems is an array
+     if (!Array.isArray(vendorItems)) {
+        console.error("renderVendorCards received non-array:", vendorItems);
+        return <p className="text-red-500">Error displaying vendors.</p>;
+     }
+     return vendorItems.map((vendor) => (
+        <div key={vendor.id} className="flex flex-col items-center text-center w-32">
+          <img 
+            src={vendor.logo_url || '/placeholder.svg'} // Use logo_url
+            alt={vendor.business_name} // Use business_name
+            className="w-20 h-20 rounded-full mb-3 object-cover border-2 border-gray-200" 
+          />
+          <p className="font-medium text-sm">{vendor.business_name}</p>
+          <div className="flex items-center text-yellow-400 mt-1">
+            {/* Use calculated average_rating (placeholder for now) */}
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className={`h-4 w-4 ${i < Math.round(vendor.average_rating || 0) ? 'fill-current' : 'text-gray-300'}`} />
+            ))}
+          </div>
+        </div>
+      ));
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -44,12 +168,13 @@ const Market = () => {
                   <Input 
                     placeholder="Search villas, souvenirs, taxis..." 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange} // Use handler
                     className="w-full"
                   />
                 </div>
                 <div className="w-full md:w-48">
-                  <Select>
+                   {/* Connect Category Select */}
+                  <Select value={categoryFilter} onValueChange={handleCategoryFilterChange}> 
                     <SelectTrigger>
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
@@ -62,7 +187,8 @@ const Market = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button className="bg-coral hover:bg-coral-dark text-white">
+                 {/* Connect Search Button */}
+                <Button onClick={handleSearchSubmit} className="bg-coral hover:bg-coral-dark text-white">
                   Search
                 </Button>
               </div>
@@ -74,10 +200,11 @@ const Market = () => {
       {/* Market Categories */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <Tabs defaultValue="property" className="w-full">
+           {/* Connect Tabs */}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex justify-center mb-8 overflow-x-auto">
               <TabsList className="bg-gray-100 p-1">
-                {/* Enhanced active state styling */}
+                {/* Add 'all' tab maybe? For now, keep categories */}
                 <TabsTrigger value="property" className="data-[state=active]:bg-ocean data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-md">
                   <Home className="mr-2 h-4 w-4" />
                   Real Estate
@@ -97,9 +224,9 @@ const Market = () => {
               </TabsList>
             </div>
 
-            {/* Sorting Dropdown Placeholder */}
+            {/* Connect Sorting Dropdown */}
             <div className="mb-6 flex justify-end">
-              <Select>
+              <Select value={sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Sort by..." />
                 </SelectTrigger>
@@ -112,39 +239,28 @@ const Market = () => {
               </Select>
             </div>
             
+            {/* Use renderListingCards helper for all tabs */}
             <TabsContent value="property" className="mt-6">
-              {/* Add specific filters for Real Estate here later if needed */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {properties.map((item, index) => (
-                  <MarketCard key={index} item={item} type="property" />
-                ))}
+                {renderListingCards(listings)}
               </div>
             </TabsContent>
             
             <TabsContent value="products" className="mt-6">
-              {/* Add specific filters for Products here later if needed */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((item, index) => (
-                  <MarketCard key={index} item={item} type="product" />
-                ))}
+                 {renderListingCards(listings)}
               </div>
             </TabsContent>
             
             <TabsContent value="services" className="mt-6">
-               {/* Add specific filters for Services here later if needed */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((item, index) => (
-                  <MarketCard key={index} item={item} type="service" />
-                ))}
+                 {renderListingCards(listings)}
               </div>
             </TabsContent>
             
             <TabsContent value="transport" className="mt-6">
-               {/* Add specific filters for Transport here later if needed */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {transport.map((item, index) => (
-                  <MarketCard key={index} item={item} type="transport" />
-                ))}
+                 {renderListingCards(listings)}
               </div>
             </TabsContent>
           </Tabs>
@@ -163,23 +279,9 @@ const Market = () => {
             </p>
           </div>
           
-          {/* Updated Vendor Display */}
+          {/* Use renderVendorCards helper */}
           <div className="flex flex-wrap justify-center gap-10 mb-10">
-            {verifiedVendors.map((vendor) => (
-              <div key={vendor.id} className="flex flex-col items-center text-center w-32">
-                <img 
-                  src={vendor.image || '/placeholder.svg'} // Use placeholder if no image
-                  alt={vendor.name} 
-                  className="w-20 h-20 rounded-full mb-3 object-cover border-2 border-gray-200" 
-                />
-                <p className="font-medium text-sm">{vendor.name}</p>
-                <div className="flex items-center text-yellow-400 mt-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className={`h-4 w-4 ${i < vendor.rating ? 'fill-current' : 'text-gray-300'}`} />
-                  ))}
-                </div>
-              </div>
-            ))}
+             {renderVendorCards(vendors)}
           </div>
 
           {/* Action Links */}
@@ -201,15 +303,30 @@ const Market = () => {
   );
 };
 
-// Market Card Component
-const MarketCard = ({ item, type }) => {
+// --- Market Card Component ---
+// Update props to use MarketListing type
+interface MarketCardProps {
+  item: MarketListing;
+  type: string; // category ('property', 'product', 'service', 'transport') or potentially 'unknown'
+}
+
+const MarketCard: React.FC<MarketCardProps> = ({ item, type }) => {
+  // Use the first image from the images array, or a placeholder
+  const imageUrl = item.images && item.images.length > 0 ? item.images[0] : '/placeholder.svg';
+  // Determine the specific type for property listings (Sale/Rent) - needs schema adjustment or logic
+  // For now, we'll just use the category passed in as 'type'
+  const displayType = type === 'property' ? item.sub_category || 'Property' : item.category; // Example: Use sub_category if available for property
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48">
+    // Card itself is wrapped by Link in the parent component
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full"> 
+      <div className="relative h-48 flex-shrink-0">
         <img 
-          src={item.image} 
+          src={imageUrl} 
           alt={item.title}
           className="w-full h-full object-cover"
+          // Add error handling for images if needed
+          onError={(e) => (e.currentTarget.src = '/placeholder.svg')} 
         />
         {item.featured && (
           <div className="absolute top-2 right-2">
@@ -218,35 +335,52 @@ const MarketCard = ({ item, type }) => {
         )}
         {type === "property" && (
           <div className="absolute top-2 left-2">
-            <Badge className="bg-ocean text-white">{item.type}</Badge>
+            {/* Use displayType derived above */}
+            <Badge className="bg-ocean text-white">{displayType}</Badge> 
           </div>
         )}
-        {(type === "product" || type === "service" || type === "transport") && (
+        {(type === "product" || type === "service" || type === "transport") && item.category && (
           <div className="absolute top-2 left-2">
+             {/* Use item.category directly here */}
             <Badge className="bg-palm-dark text-white">{item.category}</Badge>
           </div>
         )}
       </div>
-      <CardContent className="p-5">
+      {/* Make CardContent grow to fill remaining space */}
+      <CardContent className="p-5 flex flex-col flex-grow"> 
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-display font-semibold text-lg">{item.title}</h3>
-          <div className="flex items-center text-sm">
+          <h3 className="font-display font-semibold text-lg flex-grow pr-2">{item.title}</h3>
+           {/* Use average_rating from hook */}
+          <div className="flex items-center text-sm flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-            <span>{item.rating}</span>
+            {/* Display calculated average rating */}
+            <span>{item.average_rating?.toFixed(1) ?? 'N/A'}</span> 
           </div>
         </div>
-        <div className="flex items-center text-gray-500 text-sm mb-2">
-          <MapPin size={14} className="mr-1" />
-          <span>{item.location}</span>
-        </div>
-        {/* Enhanced Price Display */}
+        {/* Removed extra closing </div> tag here */}
+        {item.location && ( // Only show location if available
+          <div className="flex items-center text-gray-500 text-sm mb-2">
+            <MapPin size={14} className="mr-1 flex-shrink-0" />
+            <span>{item.location}</span>
+          </div>
+        )}
+        {/* Price Display - Handle null price */}
         <p className="text-ocean-dark font-bold text-lg mb-3">
-          ${item.price.toLocaleString()} 
-          {type === "property" && ` ${item.priceType}`} 
-          {(type === "product" || type === "service" || type === "transport") && ` ${item.priceUnit}`}
+          {item.price !== null && item.price !== undefined 
+            ? `$${item.price.toLocaleString()}` 
+            : 'Price not available'}
+          {/* Use price_unit from hook data */}
+          {item.price_unit && ` ${item.price_unit}`} 
         </p>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p> {/* Added line-clamp */}
-        <Button variant="outline" className="w-full text-ocean border-ocean hover:bg-ocean hover:text-white">
+         {/* Use description from hook data */}
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{item.description || 'No description available.'}</p>
+         {/* Button is part of the card, but navigation is handled by the Link wrapping the card */}
+        <Button 
+           variant="outline" 
+           className="w-full text-ocean border-ocean hover:bg-ocean hover:text-white mt-auto flex-shrink-0"
+           // Prevent button click from interfering with Link navigation if necessary
+           onClick={(e) => e.preventDefault()} 
+         >
           View Details
         </Button>
       </CardContent>
@@ -254,151 +388,13 @@ const MarketCard = ({ item, type }) => {
   );
 };
 
-// Sample Data
-const properties = [
-  {
-    title: "Beachfront Villa",
-    image: "https://images.unsplash.com/photo-1613977257363-707ba9348227?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.9,
-    location: "North Diani Beach",
-    description: "Luxurious 4-bedroom villa with private beach access, swimming pool, and stunning ocean views.",
-    featured: true,
-    price: 850000,
-    priceType: "USD",
-    type: "Sale"
-  },
-  {
-    title: "Ocean View Apartment",
-    image: "https://images.unsplash.com/photo-1639661858246-b64400b7b4dd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.7,
-    location: "Central Diani",
-    description: "Modern 2-bedroom apartment with balcony, just a 5-minute walk to the beach. Fully furnished.",
-    price: 2500,
-    priceType: "USD / month", // Added space for clarity
-    type: "Rent"
-  },
-  {
-    title: "Tropical Garden Cottage",
-    image: "https://images.unsplash.com/photo-1587061949409-02df41d5e562?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.6,
-    location: "South Diani",
-    description: "Charming 1-bedroom cottage surrounded by lush tropical gardens. Perfect for a vacation home.",
-    price: 120000,
-    priceType: "USD",
-    type: "Sale"
-  }
-];
-
-const products = [
-  {
-    title: "Handcrafted Kikoy Beach Towel",
-    image: "https://images.unsplash.com/photo-1621184455862-c163dfb30e0f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.8,
-    location: "Diani Craft Market",
-    description: "Authentic Kenyan Kikoy fabric beach towel, handwoven locally. Perfect for beach days!",
-    featured: true,
-    price: 25,
-    priceUnit: "USD",
-    category: "Handcrafts"
-  },
-  {
-    title: "Coastal Coconut Oil",
-    image: "https://images.unsplash.com/photo-1629225460986-a1baef1a123c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.9,
-    location: "Local Farmer's Market",
-    description: "Organic cold-pressed coconut oil made from local Diani coconuts. Great for cooking and skincare.",
-    price: 12,
-    priceUnit: "USD",
-    category: "Food & Wellness"
-  },
-  {
-    title: "Makonde Wood Carving",
-    image: "https://images.unsplash.com/photo-1630694093867-4b947d812bf0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.7,
-    location: "Ukunda Art Gallery",
-    description: "Traditional Makonde sculpture, hand-carved by local artisans. A perfect souvenir from your Diani trip.",
-    price: 85,
-    priceUnit: "USD",
-    category: "Art"
-  }
-];
-
-const services = [
-  {
-    title: "Private Dhow Sailing Sunset Cruise",
-    image: "https://images.unsplash.com/photo-1543039717-89d0ea1586ee?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=874&q=80",
-    rating: 4.9,
-    location: "Diani Beach Waterfront",
-    description: "Experience the magic of a Diani sunset aboard a traditional dhow sailing boat. Includes refreshments.",
-    featured: true,
-    price: 65,
-    priceUnit: "USD / person", // Added space
-    category: "Tours"
-  },
-  {
-    title: "Full-Day Deep Sea Fishing",
-    image: "https://images.unsplash.com/photo-1564857911908-b73619f98319?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=877&q=80",
-    rating: 4.8,
-    location: "Diani Marine Center",
-    description: "Professional deep sea fishing expedition with experienced local guides. All equipment provided.",
-    price: 220,
-    priceUnit: "USD / person", // Added space
-    category: "Adventure"
-  },
-  {
-    title: "In-Villa Massage & Spa Treatment",
-    image: "https://images.unsplash.com/photo-1600334129128-685c5582fd35?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.9,
-    location: "Your accommodation",
-    description: "Relaxing massage and spa treatments in the comfort of your own accommodation. Uses local oils and techniques.",
-    price: 80,
-    priceUnit: "USD / hour", // Added space
-    category: "Wellness"
-  }
-];
-
-const transport = [
-  {
-    title: "SGR Transfer: Mombasa to Diani",
-    image: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=884&q=80",
-    rating: 4.7,
-    location: "Mombasa Terminus",
-    description: "Reliable transfer service from Mombasa SGR station to your accommodation in Diani. Air-conditioned vehicles.",
-    featured: true,
-    price: 35,
-    priceUnit: "USD / person", // Added space
-    category: "Airport Transfer"
-  },
-  {
-    title: "Daily TukTuk Rental",
-    image: "https://images.unsplash.com/photo-1598966035712-45462dbfbec6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=886&q=80",
-    rating: 4.6,
-    location: "Diani Town Center",
-    description: "Explore Diani at your own pace with a private TukTuk for the day. Includes driver and fuel.",
-    price: 45,
-    priceUnit: "USD / day", // Added space
-    category: "Local Transport"
-  },
-  {
-    title: "Bodaboda Motorcycle Taxi",
-    image: "https://images.unsplash.com/photo-1625926463389-7609207f2480?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80",
-    rating: 4.5,
-    location: "Throughout Diani",
-    description: "Quick and convenient motorcycle taxi service for short trips around Diani. Helmets provided.",
-    price: 5,
-    priceUnit: "USD / ride", // Added space
-    category: "Local Transport"
-  }
-];
-
-// Sample Verified Vendor Data (Replace with actual data source later)
-const verifiedVendors = [
-  { id: 1, name: "Diani Beach Villas", image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80", rating: 5 },
-  { id: 2, name: "Coastal Crafts Co.", image: "https://images.unsplash.com/photo-1599473607947-9283d775f090?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80", rating: 4 },
-  { id: 3, name: "Safari Blue Excursions", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=387&q=80", rating: 5 },
-  { id: 4, name: "Diani Taxi Services", image: "https://images.unsplash.com/photo-1533674689012-7b3b0a43a759?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80", rating: 4 },
-  { id: 5, name: "Mama Lucy's Kitchen", image: "https://images.unsplash.com/photo-1555952517-2e8e729e0b44?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=464&q=80", rating: 5 },
-];
-
+// Sample Data - REMOVED (Data now comes from hooks)
+/*
+const properties = [ ... ];
+const products = [ ... ];
+const services = [ ... ];
+const transport = [ ... ];
+const verifiedVendors = [ ... ];
+*/
 
 export default Market;

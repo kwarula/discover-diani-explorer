@@ -1,170 +1,92 @@
-import React, { useState, useMemo } from 'react'; // Added useState, useMemo
+import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Star, Compass, Sun, Waves, Anchor } from "lucide-react";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api'; // Added imports
+import { MapPin, Star, Compass, Sun, Waves, Anchor, Landmark, Loader2 } from "lucide-react"; // Added Landmark, Loader2
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+// import { supabase } from '@/integrations/supabase/client'; // Removed direct supabase import
+// import { supabase } from '@/integrations/supabase/client'; // Removed direct supabase import
+import { Tables } from '@/types/database'; // Added
+import PoiCard from '@/components/poi/PoiCard'; // Added
+import { useListings } from '@/hooks/useListings'; // Added useListings hook
+import usePois from '@/hooks/usePois'; // Corrected default import for usePois hook
+import { Checkbox } from "@/components/ui/checkbox"; // Added
+import { Label } from "@/components/ui/label"; // Added
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added
+import { Link } from 'react-router-dom'; // Added Link for cards
 
 const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const defaultCenter = { lat: -4.2833, lng: 39.5833 }; // Diani Beach center
 
-// --- Add Coordinates to Sample Data ---
-const beachSpots = [
-  {
-    id: 'beach-1', // Added unique ID
-    title: "Diani Main Beach",
-    image: "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    rating: 4.9,
-    location: "Central Diani",
-    description: "The iconic white sand beaches that made Diani famous. Perfect for swimming and sunbathing.",
-    featured: true,
-    coords: { lat: -4.2833, lng: 39.5833 } // Central
-  },
-  {
-    id: 'beach-2',
-    title: "Galu Beach",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    rating: 4.7,
-    location: "South Diani",
-    description: "A quieter stretch of beach with pristine sands and fewer crowds. Great for relaxation.",
-    coords: { lat: -4.3150, lng: 39.5600 } // South
-  },
-  {
-    id: 'beach-3',
-    title: "Tiwi Beach",
-    image: "https://images.unsplash.com/photo-1535262412227-85541e910204?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80",
-    rating: 4.6,
-    location: "North of Diani",
-    description: "A secluded beach with beautiful rock formations and tide pools. Popular with locals.",
-    coords: { lat: -4.2200, lng: 39.6100 } // North
-  }
-];
-
-const activities = [
-  {
-    id: 'activity-1',
-    title: "Snorkeling & Diving",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    rating: 4.8,
-    location: "Diani Marine Reserve",
-    description: "Explore vibrant coral reefs and diverse marine life in the crystal clear waters.",
-    featured: true,
-    coords: { lat: -4.2900, lng: 39.5900 } // Near central reef
-  },
-  {
-    id: 'activity-2',
-    title: "Kitesurfing",
-    image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    rating: 4.9,
-    location: "Galu Beach",
-    description: "Perfect wind conditions make Diani one of the top kitesurfing destinations in Africa.",
-    coords: { lat: -4.3150, lng: 39.5600 } // South (Galu)
-  },
-  {
-    id: 'activity-3',
-    title: "Glass Bottom Boat Tours",
-    image: "https://images.unsplash.com/photo-1561738687-52807c030c55?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80",
-    rating: 4.5,
-    location: "Central Diani",
-    description: "View the underwater world without getting wet on these popular family-friendly tours.",
-    coords: { lat: -4.2850, lng: 39.5850 } // Central
-  }
-];
-
-const attractions = [
-  {
-    id: 'attraction-1',
-    title: "Colobus Conservation",
-    image: "https://images.unsplash.com/photo-1594128597047-ab2801b1e6bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80",
-    rating: 4.7,
-    location: "Diani Beach Road",
-    description: "Sanctuary for the endangered Angolan Colobus monkeys with guided tours available.",
-    featured: true,
-    coords: { lat: -4.2700, lng: 39.5800 } // Approx location
-  },
-  {
-    id: 'attraction-2',
-    title: "Kaya Kinondo Sacred Forest",
-    image: "https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    rating: 4.6,
-    location: "Kinondo, South Diani",
-    description: "A sacred Mijikenda forest with cultural significance and guided eco-tours.",
-    coords: { lat: -4.3400, lng: 39.5450 } // South, inland slightly
-  },
-  {
-    id: 'attraction-3',
-    title: "Shimba Hills National Reserve",
-    image: "https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    rating: 4.5,
-    location: "45 minutes from Diani",
-    description: "Kenya's only coastal national park featuring elephants, antelope and beautiful waterfalls.",
-    coords: { lat: -4.2400, lng: 39.4200 } // West inland
-  }
-];
-
-const restaurants = [
-  {
-    id: 'restaurant-1',
-    title: "Sails Beach Bar & Restaurant",
-    image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80",
-    rating: 4.8,
-    location: "Central Diani Beach",
-    description: "Beachfront dining with fresh seafood and international cuisine. Perfect for sunset cocktails.",
-    featured: true,
-    coords: { lat: -4.2880, lng: 39.5820 } // Central beachfront
-  },
-  {
-    id: 'restaurant-2',
-    title: "Ali Barbour's Cave Restaurant",
-    image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    rating: 4.9,
-    location: "Diani Beach Road",
-    description: "Unique dining experience in a natural coral cave, serving gourmet cuisine under the stars.",
-    coords: { lat: -4.2750, lng: 39.5780 } // Near road
-  },
-  {
-    id: 'restaurant-3',
-    title: "Nomad Beach Bar & Restaurant",
-    image: "https://images.unsplash.com/photo-1535262412227-85541e910204?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80",
-    rating: 4.7,
-    location: "South Diani",
-    description: "Casual beachfront dining with wood-fired pizzas, seafood, and relaxed atmosphere.",
-    coords: { lat: -4.3050, lng: 39.5680 } // South beachfront
-  }
-];
-// --- End Data Update ---
+// --- Remove Static Sample Data ---
 
 const ExplorePage = () => {
-  const [activeTab, setActiveTab] = useState('beaches');
+  const [activeTab, setActiveTab] = useState('beaches'); // Default tab
   const [selectedMarker, setSelectedMarker] = useState<any>(null); // State for InfoWindow
 
-  // Combine all locations for the map or filter based on tab
-  const allLocations = useMemo(() => [
-    ...beachSpots,
-    ...activities,
-    ...attractions,
-    ...restaurants
-  ], []);
+  // State for filters
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // Keep category filter for listings
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
+  const [selectedTide, setSelectedTide] = useState<string>('all');
 
-  // Or filter based on active tab (optional, showing all might be simpler)
-  const currentLocations = useMemo(() => {
-    switch (activeTab) {
-      case 'beaches': return beachSpots;
-      case 'activities': return activities;
-      case 'attractions': return attractions;
-      case 'dining': return restaurants;
-      default: return allLocations; // Show all if no specific tab matches
-    }
-  }, [activeTab, allLocations]);
+  // Fetch data using hooks
+  // Fetch all listings initially, filtering will happen client-side based on category state
+  const { data: listingsData, isLoading: listingsLoading, error: listingsError } = useListings(null, 100); // Fetch more listings
+  const { pois, loading: poisLoading, error: poisError } = usePois();
+
+  // Combine loading states and errors
+  const loading = listingsLoading || poisLoading;
+  const error = listingsError?.message || poisError; // Combine error messages
+
+  // Filtered data based on state
+  const filteredListings = useMemo(() => {
+    // Ensure listingsData is not null or undefined before filtering
+    const currentListings = listingsData || [];
+    return currentListings.filter(listing => {
+      if (showVerifiedOnly && !listing.is_verified) return false;
+      // Filter by selected tab category (client-side)
+      if (activeTab !== 'all' && activeTab !== 'poi' && listing.category?.toLowerCase() !== activeTab.toLowerCase()) return false;
+      // Apply other filters
+      if (selectedCategory !== 'all' && listing.category !== selectedCategory) return false; // This might be redundant if using tabs
+      if (selectedPriceRange !== 'all' && listing.price_range !== selectedPriceRange) return false;
+      if (selectedTide !== 'all' && listing.tide_dependency !== selectedTide) return false;
+      return true;
+    });
+    // Update dependencies: include activeTab if filtering by it
+  }, [listingsData, showVerifiedOnly, activeTab, selectedCategory, selectedPriceRange, selectedTide]);
+
+  const filteredPois = useMemo(() => {
+    // Add POI filtering if needed (e.g., by category)
+    // Example: filter by selectedCategory if it applies to POIs
+    // if (selectedCategory !== 'all' && poi.category !== selectedCategory) return false;
+    return pois || []; // Return empty array if pois is null/undefined
+  }, [pois]); // Add dependencies if filtering POIs
+
+  // Data for the map (currently only POIs due to missing listing coords)
+  const mapLocations = useMemo(() => {
+    return filteredPois
+      .filter(poi => poi.latitude && poi.longitude) // Ensure coords exist
+      .map(poi => ({
+        id: `poi-${poi.id}`, // Use the correct id type (string)
+        title: poi.name, // Use name field
+        description: poi.description || '', // Use description field
+        coords: { lat: poi.latitude!, lng: poi.longitude! }, // Use latitude/longitude fields
+        type: 'poi'
+      }));
+    // TODO: Add filteredListings to mapLocations if/when coordinate data is available
+  }, [filteredPois]);
 
 
   if (!GOOGLE_MAPS_API_KEY) {
       return <div className="text-red-600 p-4">Error: Google Maps API Key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.</div>;
   }
+
+  // No longer need getListingsByCategory as filtering happens in useMemo based on activeTab
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -197,70 +119,146 @@ const ExplorePage = () => {
       </section>
 
       {/* Explore Categories */}
+      {/* Filtering Section */}
+      <section className="py-8 bg-gray-100">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap items-center gap-4 md:gap-6">
+            <h3 className="text-lg font-semibold mr-4 shrink-0">Filter By:</h3>
+            {/* Verified Filter */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="verifiedOnlyExplore"
+                checked={showVerifiedOnly}
+                onCheckedChange={(checked) => setShowVerifiedOnly(Boolean(checked))}
+                aria-labelledby="verifiedOnlyExploreLabel"
+              />
+              <Label htmlFor="verifiedOnlyExplore" id="verifiedOnlyExploreLabel" className="text-sm font-medium">
+                Verified Only
+              </Label>
+            </div>
+            {/* Category Filter (Example - adjust based on actual categories) */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[180px] bg-white">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="beach">Beaches</SelectItem>
+                <SelectItem value="activity">Activities</SelectItem>
+                <SelectItem value="attraction">Attractions</SelectItem>
+                <SelectItem value="dining">Dining</SelectItem>
+                <SelectItem value="accommodation">Accommodation</SelectItem>
+                {/* Add more categories dynamically if needed */}
+              </SelectContent>
+            </Select>
+             {/* Price Range Filter (Example) */}
+            <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
+              <SelectTrigger className="w-[180px] bg-white">
+                <SelectValue placeholder="Price Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Prices</SelectItem>
+                <SelectItem value="$">$ (Budget)</SelectItem>
+                <SelectItem value="$$">$$ (Mid-range)</SelectItem>
+                <SelectItem value="$$$">$$$ (Premium)</SelectItem>
+              </SelectContent>
+            </Select>
+             {/* Tide Dependency Filter (Example) */}
+             <Select value={selectedTide} onValueChange={setSelectedTide}>
+              <SelectTrigger className="w-[180px] bg-white">
+                <SelectValue placeholder="Tide Dependency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Tide</SelectItem>
+                <SelectItem value="low_tide_best">Best at Low Tide</SelectItem>
+                <SelectItem value="high_tide_accessible">Accessible High Tide</SelectItem>
+                <SelectItem value="none">Not Tide Dependent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+
+      {/* Explore Categories & Listings */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <Tabs defaultValue="beaches" className="w-full" onValueChange={setActiveTab}> {/* Update activeTab state */}
+          <Tabs defaultValue="beaches" className="w-full" onValueChange={setActiveTab}>
             <div className="flex justify-center mb-8">
-              <TabsList className="bg-gray-100 p-1">
-                 {/* ... TabsTriggers ... */}
+              <TabsList className="bg-gray-100 p-1 flex-wrap h-auto">
                  <TabsTrigger value="beaches" className="data-[state=active]:bg-white data-[state=active]:text-ocean"> <Sun className="mr-2 h-4 w-4" /> Beaches </TabsTrigger>
                  <TabsTrigger value="activities" className="data-[state=active]:bg-white data-[state=active]:text-ocean"> <Waves className="mr-2 h-4 w-4" /> Activities </TabsTrigger>
                  <TabsTrigger value="attractions" className="data-[state=active]:bg-white data-[state=active]:text-ocean"> <Compass className="mr-2 h-4 w-4" /> Attractions </TabsTrigger>
                  <TabsTrigger value="dining" className="data-[state=active]:bg-white data-[state=active]:text-ocean"> <Anchor className="mr-2 h-4 w-4" /> Dining </TabsTrigger>
+                 <TabsTrigger value="poi" className="data-[state=active]:bg-white data-[state=active]:text-ocean"> <Landmark className="mr-2 h-4 w-4" /> Points of Interest </TabsTrigger>
+                 {/* Add Accommodation Tab if needed */}
               </TabsList>
             </div>
 
-            {/* ... TabsContent for listing cards ... */}
-             <TabsContent value="beaches" className="mt-6"> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {beachSpots.map((spot) => ( <LocationCard key={spot.id} location={spot} /> ))} </div> </TabsContent>
-             <TabsContent value="activities" className="mt-6"> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {activities.map((activity) => ( <LocationCard key={activity.id} location={activity} /> ))} </div> </TabsContent>
-             <TabsContent value="attractions" className="mt-6"> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {attractions.map((attraction) => ( <LocationCard key={attraction.id} location={attraction} /> ))} </div> </TabsContent>
-             <TabsContent value="dining" className="mt-6"> <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {restaurants.map((restaurant) => ( <LocationCard key={restaurant.id} location={restaurant} /> ))} </div> </TabsContent>
+            {/* Loading and Error States */}
+            {loading && (
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin text-ocean-light" />
+              </div>
+            )}
+            {error && <p className="text-center text-red-600 py-20">{error}</p>}
 
+            {/* Tabs Content */}
+            {/* Tabs Content - Now directly use filteredListings */}
+            {!loading && !error && (
+              <>
+                <TabsContent value="beaches" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
+                <TabsContent value="activities" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
+                <TabsContent value="attractions" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
+                <TabsContent value="dining" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
+                <TabsContent value="poi" className="mt-6"> <PoiGrid pois={filteredPois} /> </TabsContent>
+                {/* Add Accommodation Content similarly */}
+              </>
+            )}
           </Tabs>
         </div>
       </section>
 
-      {/* --- Map Section --- */}
+      {/* Map Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-10">
             <h2 className="text-3xl font-display font-bold text-ocean-dark mb-4">
-              Diani Beach Map
+              Explore Map
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Click on the markers to explore attractions, restaurants, activities, and beaches in Diani.
+              Click on the markers to explore points of interest. (Listing map integration pending coordinate data).
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-lg p-1 aspect-[16/9] max-w-6xl mx-auto overflow-hidden"> {/* Adjusted max-width */}
-            {/* Replace placeholder with Google Map */}
+          <div className="bg-white rounded-lg shadow-lg p-1 aspect-[16/9] max-w-6xl mx-auto overflow-hidden">
             <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
               <GoogleMap
                 mapContainerStyle={MAP_CONTAINER_STYLE}
                 center={defaultCenter}
-                zoom={13} // Slightly zoomed out to see more area
+                zoom={13}
               >
-                {/* Render markers for the currently selected tab's locations */}
-                {currentLocations.map((location) => (
+                {/* Render markers only for POIs for now */}
+                {mapLocations.map((location) => (
                   <Marker
                     key={location.id}
                     position={location.coords}
                     title={location.title}
-                    onClick={() => setSelectedMarker(location)} // Set selected marker on click
+                    onClick={() => setSelectedMarker(location)}
+                    // TODO: Add custom icons based on type (poi, listing category)
                   />
                 ))}
 
-                {/* Show InfoWindow when a marker is selected */}
                 {selectedMarker && (
                   <InfoWindow
                     position={selectedMarker.coords}
-                    onCloseClick={() => setSelectedMarker(null)} // Clear selection on close
+                    onCloseClick={() => setSelectedMarker(null)}
                   >
                     <div className="p-1 max-w-xs">
                       <h4 className="font-bold text-md mb-1">{selectedMarker.title}</h4>
-                      <p className="text-sm text-gray-600">{selectedMarker.description}</p>
-                       <Button size="sm" variant="link" className="p-0 h-auto mt-1 text-coral" onClick={() => alert(`Navigate to details for ${selectedMarker.title}`)}>
-                         View Details {/* Link to detail page later */}
+                      <p className="text-sm text-gray-600 line-clamp-3">{selectedMarker.description}</p>
+                       {/* TODO: Link to POI detail page or listing detail page */}
+                       <Button size="sm" variant="link" className="p-0 h-auto mt-1 text-coral">
+                         View Details
                        </Button>
                     </div>
                   </InfoWindow>
@@ -270,49 +268,96 @@ const ExplorePage = () => {
           </div>
         </div>
       </section>
-      {/* --- End Map Section --- */}
 
       <Footer />
     </div>
   );
 };
 
-// Location Card Component (remains the same)
-const LocationCard = ({ location }: { location: any }) => { // Added type annotation
+// --- Refactored/New Helper Components ---
+
+// Grid for displaying listings
+const ListingGrid = ({ listings }: { listings: Tables<'listings'>[] }) => {
+  if (listings.length === 0) {
+    return <p className="text-center text-gray-500 py-10">No items match the current filters in this category.</p>;
+  }
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48">
-        <img
-          src={location.image}
-          alt={location.title}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {listings.map((listing) => (
+        <ListingCard key={listing.id} listing={listing} />
+      ))}
+    </div>
+  );
+};
+
+// Grid for displaying POIs
+const PoiGrid = ({ pois }: { pois: Tables<'points_of_interest'>[] }) => {
+   if (pois.length === 0) {
+    return <p className="text-center text-gray-500 py-10">No points of interest found.</p>;
+  }
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {pois.map((poi) => (
+        // Wrap PoiCard in Link
+        <Link key={poi.id} to={`/poi/${poi.id}`} className="block group">
+          <PoiCard poi={poi} />
+        </Link>
+      ))}
+    </div>
+  );
+};
+
+
+// Refactored Location Card to work with Listing data
+const ListingCard = ({ listing }: { listing: Tables<'listings'> }) => {
+  // Use placeholder image if listing.images is null/empty
+  const imageUrl = listing.images?.[0] || '/placeholder.svg';
+
+  return (
+    <Link to={`/listing/${listing.id}`} className="block group"> {/* Wrap card in Link */}
+      <Card className="overflow-hidden group-hover:shadow-lg transition-shadow duration-300 h-full flex flex-col"> {/* Added h-full and flex */}
+        <div className="relative h-48 shrink-0"> {/* Added shrink-0 */}
+          <img
+          src={imageUrl}
+          alt={listing.title ?? 'Listing image'}
           className="w-full h-full object-cover"
         />
-        {location.featured && (
+        {listing.featured && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-coral text-white">Featured</Badge>
           </div>
         )}
+         {listing.is_verified && ( // Display verified badge if applicable
+           <div className="absolute top-2 left-2">
+             <Badge className="bg-blue-600 text-white">Verified</Badge>
+           </div>
+         )}
       </div>
       <CardContent className="p-5">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-display font-semibold text-lg">{location.title}</h3>
-          <div className="flex items-center text-sm">
+          <h3 className="font-display font-semibold text-lg">{listing.title}</h3>
+          {/* Add rating display if available in listings table */}
+          {/* <div className="flex items-center text-sm">
             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
-            <span>{location.rating}</span>
-          </div>
+            <span>{listing.rating}</span>
+          </div> */}
         </div>
         <div className="flex items-center text-gray-500 text-sm mb-3">
           <MapPin size={14} className="mr-1" />
-          <span>{location.location}</span>
+          <span>{listing.location || 'Diani Beach'}</span> {/* Use location string */}
         </div>
-        <p className="text-gray-600 text-sm mb-4">{location.description}</p>
-        <Button variant="outline" className="w-full text-ocean border-ocean hover:bg-ocean hover:text-white">
+        <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">{listing.description || 'No description available.'}</p> {/* Added flex-grow */}
+        {/* Button removed as the whole card is a link */}
+        {/* <Button variant="outline" className="w-full text-ocean border-ocean hover:bg-ocean hover:text-white mt-auto">
           View Details
-        </Button>
+        </Button> */}
+         <div className="mt-auto pt-2 text-right text-sm text-ocean group-hover:underline">
+            View Details &rarr;
+         </div>
       </CardContent>
     </Card>
+    </Link>
   );
 };
-
 
 export default ExplorePage;

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, Sun, AlertTriangle, Waves, Siren, Sprout, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
+import { ShieldCheck, Sun, AlertTriangle, Waves, Siren, Sprout, ArrowLeft, UserCheck, Map, Phone } from 'lucide-react'; // Added UserCheck, Map, Phone
 
 const BeachSafety = () => {
   return (
@@ -107,12 +107,46 @@ const BeachSafety = () => {
               </li>
               <li className="flex items-start">
                 <ShieldCheck size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
-                <span><strong>Know emergency contacts:</strong> Keep local numbers handy.</span>
+                <span><strong>Know emergency contacts:</strong> Tourist Police: +254 7XX XXX XXX, Ambulance: 999 / 112. (Verify numbers)</span>
+              </li>
+               <li className="flex items-start">
+                 <Phone size={18} className="mr-2 mt-1 text-red-600 flex-shrink-0" />
+                 <span><strong>Emergency Numbers:</strong> Police: 999, Ambulance: 112 / 999, Tourist Police: [Insert Number].</span>
+               </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Exploring Further & Guide Safety Card */}
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <Map size={24} className="mr-2" />
+              Exploring Further & Guide Safety
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <UserCheck size={18} className="mr-2 mt-1 text-blue-600 flex-shrink-0" />
+                <span><strong>Use Verified Guides:</strong> For excursions, especially to remote areas (like Tiwi) or cultural sites, strongly prefer guides verified by reputable sources or the app.</span>
+              </li>
+              <li className="flex items-start">
+                <ShieldCheck size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Solo Travelers:</strong> Inform someone (hotel, friend) of your itinerary, especially when venturing off the main beach areas.</span>
+              </li>
+              <li className="flex items-start">
+                <ShieldCheck size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Remote Locations:</strong> Areas like Tiwi Beach are beautiful but can be isolated. A guide and trusted transport are highly recommended for safety and navigation.</span>
+              </li>
+               <li className="flex items-start">
+                <ShieldCheck size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Trusted Transport:</strong> Use reliable taxis or verified operators (Tuk-tuk/Boda) arranged through trusted sources for trips to less populated areas, especially after dark.</span>
               </li>
             </ul>
           </CardContent>
         </Card>
-        
+
       </div>
        <p className="text-center text-gray-600 mt-12">
           By following these simple guidelines, you can enjoy the breathtaking beauty of Diani Beach safely and responsibly.

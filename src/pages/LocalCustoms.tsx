@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Handshake, Users, Shirt, UtensilsCrossed, Camera, Smile, Building2, Leaf, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
+import { Handshake, Users, Shirt, UtensilsCrossed, Camera, Smile, Building2, Leaf, ArrowLeft, PawPrint, AlertTriangle } from 'lucide-react'; // Added PawPrint, AlertTriangle
 
 const LocalCustoms = () => {
   return (
@@ -121,6 +121,36 @@ const LocalCustoms = () => {
               <li className="flex items-start">
                 <Leaf size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
                 <span><strong>Responsible Tourism:</strong> Be mindful of environment & respect local traditions.</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Wildlife Interactions Card */}
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <PawPrint size={24} className="mr-2 text-orange-600" />
+              Wildlife Interactions (Monkeys)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <Smile size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Vervet Monkeys:</strong> Common, especially near food areas (restaurants, balconies).</span>
+              </li>
+              <li className="flex items-start">
+                <AlertTriangle size={18} className="mr-2 mt-1 text-red-600 flex-shrink-0" />
+                <span><strong>Do NOT Feed:</strong> Feeding encourages dependency and boldness.</span>
+              </li>
+              <li className="flex items-start">
+                <AlertTriangle size={18} className="mr-2 mt-1 text-yellow-600 flex-shrink-0" />
+                <span><strong>Secure Food/Belongings:</strong> Monkeys are opportunistic. Don't leave food unattended outdoors.</span>
+              </li>
+              <li className="flex items-start">
+                <Smile size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Generally Harmless:</strong> They are usually not aggressive but can be cheeky thieves!</span>
               </li>
             </ul>
           </CardContent>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plane, Hotel, Banknote, HeartPulse, Briefcase, CheckCircle, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
+import { Plane, Hotel, Banknote, HeartPulse, Briefcase, CheckCircle, ArrowLeft, CarTaxiFront, Ship, Wallet } from 'lucide-react'; // Replaced Ferry with Ship
 
 const TravelTips = () => {
   return (
@@ -135,6 +135,96 @@ const TravelTips = () => {
               <li>Basic first-aid kit</li>
               <li>Camera</li>
               <li>Adapter (Type G - UK style)</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Transport Tips Card */}
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <CarTaxiFront size={24} className="mr-2 text-yellow-600" />
+              Transport Tips & Fares
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Negotiate First:</strong> Always agree on fares *before* starting with Tuk-tuks/Boda-bodas.</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Estimated Fares (Tuk-tuk):</strong> Ukunda-Beach: 200-400 KSh, Beach-Kongo River: 300-500 KSh, Short hops: 100-200 KSh.</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Taxis:</strong> More expensive, better for groups/distance. Confirm fare/meter.</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Apps:</strong> Ride-hailing (Uber/Bolt) availability varies. Check locally.</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Likoni Ferry Card */}
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <Ship size={24} className="mr-2 text-blue-600" /> {/* Replaced Ferry with Ship */}
+              Likoni Ferry (Mombasa)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Context:</strong> Connects Mombasa Island to the South Coast (road to Diani).</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Crowds:</strong> Can be very crowded, especially during morning/evening commute times.</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Safety:</strong> Be aware of surroundings and belongings in crowds.</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Alternatives:</strong> Fly directly to Ukunda (UKA), arrange private transfer (more costly but avoids ferry).</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Budget Travel Card */}
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <Wallet size={24} className="mr-2 text-purple-600" />
+              Diani on a Budget
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-gray-700">
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Hostels:</strong> Available, often around 2000-2500 KSh/night. Check listings.</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Cheap Eats:</strong> Look for local eateries ('kibandas') away from main tourist spots for affordable meals.</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Free Activities:</strong> Enjoy the beach, swim, walk, explore local markets (window shopping!).</span>
+              </li>
+               <li className="flex items-start">
+                <CheckCircle size={18} className="mr-2 mt-1 text-green-600 flex-shrink-0" />
+                <span><strong>Transport:</strong> Use Tuk-tuks/Boda-bodas for short trips, negotiate fares. Consider Matatus for longer routes if adventurous.</span>
+              </li>
             </ul>
           </CardContent>
         </Card>

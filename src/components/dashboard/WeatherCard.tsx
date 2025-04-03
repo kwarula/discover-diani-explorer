@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { CloudSun, Cloud, CloudRain, CloudSnow, Sun, Wind, Droplets, Waves } from 'lucide-react'; // Added Waves icon
+import { CloudSun, Cloud, CloudRain, CloudSnow, Sun, Wind, Droplets, Waves } from 'lucide-react'; // Added Waves
 import useWeather from '@/hooks/useWeather'; // Import the hook
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
-import { useTideData } from '@/hooks/useTideData'; // Import the tide data hook
+import TideWidget from './TideWidget'; // Import the TideWidget
 
 interface WeatherCardProps {
   currentDate: string; 
@@ -14,22 +13,6 @@ interface WeatherCardProps {
 const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) => {
   // Destructure the updated return value from the hook
   const { currentWeather, forecast, loading, error } = useWeather();
-  // Get tide data
-  const { tideData, loading: tideLoading, error: tideError } = useTideData();
-
-  // Get the next tide (either high or low)
-  const getNextTide = () => {
-    if (!tideData || tideData.length === 0) return null;
-    
-    const now = Date.now();
-    const futureEvents = tideData.filter(tide => tide.timestamp > now);
-    
-    return futureEvents.length > 0 
-      ? futureEvents.sort((a, b) => a.timestamp - b.timestamp)[0] 
-      : null;
-  };
-
-  const nextTide = getNextTide();
 
   const getGradientClass = () => {
     const hour = new Date().getHours(); // Get current hour (0-23)
@@ -103,7 +86,7 @@ const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) =
             Welcome back, {userName}!
           </h1>
           <p className="text-white/90 text-lg">
-            {currentDate} • {currentTime} • {currentWeather.cityName}
+            {currentDate} • {currentTime} • Diani Beach
           </p>
         </div>
 
@@ -132,40 +115,38 @@ const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) =
         </div>
       </div>
 
-      {/* Next Tide Information */}
-      {nextTide && (
-        <div className="mt-6 bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-          <div className="flex items-center text-white">
-            <div className={`p-2 rounded-lg mr-3 ${nextTide.type === 'high' ? 'bg-blue-500/30' : 'bg-amber-500/30'}`}>
-              <Waves size={24} className="text-white" />
-            </div>
-            <div>
-              <p className="font-medium">{nextTide.type === 'high' ? 'Next High Tide' : 'Next Low Tide'}</p>
-              <p className="text-sm text-white/80">
-                {nextTide.time} • {nextTide.height}m
-              </p>
-            </div>
-            <div className="ml-auto text-sm bg-white/20 px-3 py-1 rounded-full">
-              {nextTide.type === 'low' ? 'Good for: Africa Pool, Sandbars' : 'Good for: Swimming, Watersports'}
-            </div>
+      {/* Combined Forecast and Tide Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mt-8">
+        {/* Mini forecast */}
+        {forecast && forecast.length > 0 && (
+          <div className="lg:col-span-4 hidden lg:flex justify-around bg-white/10 rounded-xl p-4">
+            {forecast.map((day, index) => (
+              <div key={index} className="text-center px-2 flex-1">
+                <div className="font-medium">{day.day}</div>
+                {/* Placeholder icon - replace if Stormglass provides usable icons or map temps */}
+                <Sun size={24} className="mx-auto my-1 text-yellow-300" />
+                <div className="text-xl font-bold">{day.temp}°</div>
+                <div className="text-xs text-white/80 capitalize">{day.description}</div>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
-
-      {/* Mini forecast - Re-added using the forecast data */}
-      {forecast && forecast.length > 0 && (
-        <div className="hidden lg:flex justify-around mt-8 bg-white/10 rounded-xl p-4">
-          {forecast.map((day, index) => (
-            <div key={index} className="text-center px-2">
-              <div className="font-medium">{day.day}</div>
-              {/* Placeholder icon - replace if Stormglass provides usable icons or map temps */}
-              <Sun size={24} className="mx-auto my-1 text-yellow-300" />
-              <div className="text-xl font-bold">{day.temp}°</div>
-              <div className="text-xs text-white/80 capitalize">{day.description}</div>
+        )}
+         {/* Placeholder if forecast fails but weather works */}
+         {!forecast && !loading && !error && (
+            <div className="lg:col-span-4 hidden lg:flex justify-center items-center bg-white/10 rounded-xl p-4 text-sm text-white/70">
+                Forecast data unavailable.
             </div>
-          ))}
+         )}
+
+        {/* Tide Widget */}
+        <div className="lg:col-span-1">
+           {/* Render TideWidget - it handles its own loading/error state */}
+           {/* Wrap TideWidget Card in a div to ensure it takes space even if empty */}
+           <div className="h-full">
+             <TideWidget />
+           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

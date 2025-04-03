@@ -60,21 +60,24 @@ export const useAuthState = () => {
   // Function to fetch user profile from 'profiles' table
   const fetchUserProfile = async (userId: string) => {
     try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single() as { data: Profile | null, error: any };
+     setIsLoading(true);
+     // Select specific columns matching the Profile type
+     const { data, error } = await supabase
+       .from('profiles')
+       .select('id, created_at, updated_at, username, full_name, avatar_url, dietary_preferences, interests, stay_duration, is_tourist')
+       .eq('id', userId)
+       .single(); // Rely on inferred type or cast Profile | null later
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single()
         console.error('Error fetching user profile:', error);
         setProfile(null);
       } else if (data) {
-        setProfile(data);
-      } else {
-        setProfile(null);
-      }
+       // Cast here if needed, ensures data matches Profile structure if not null
+       setProfile(data as Profile | null); 
+     } else {
+       // Handle case where profile doesn't exist (PGRST116) or other null data
+       setProfile(null);
+     }
     } catch (error) {
       console.error('Error in fetch profile:', error);
     } finally {
