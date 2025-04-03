@@ -1,10 +1,15 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CloudSun, Thermometer, Droplets, CalendarDays, Info, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
+import { CloudSun, Thermometer, Droplets, CalendarDays, Info, ArrowLeft, Waves } from 'lucide-react'; // Added Waves icon
+import { useTideData } from '@/hooks/useTideData'; // Import the tide data hook
 
 const WeatherForecast = () => {
+  // Get tide data using our custom hook
+  const { tideData, loading, error } = useTideData();
+  
   // Placeholder data - replace with actual data fetching if needed
   const placeholderForecast = [
     { day: 'Today', condition: 'Sunny', temp: '31°C', humidity: '75%', icon: <CloudSun size={20} className="text-yellow-500" /> },
@@ -78,6 +83,83 @@ const WeatherForecast = () => {
              <p className="text-sm text-gray-500 mt-4 italic">
               (This is placeholder data - integrate a real weather API for live updates)
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* New Tide Information Section */}
+      <h2 className="text-3xl font-semibold mb-6 text-center text-ocean-dark">Tide Information</h2>
+      <div className="mb-12">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle className="flex items-center text-ocean-light">
+              <Waves size={24} className="mr-2" />
+              Diani Beach Tides
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center p-6">
+                <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-4 py-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500 p-4">
+                <p>{error}</p>
+                <p className="text-sm mt-2">Check your API configuration or network connection.</p>
+              </div>
+            ) : (
+              <div>
+                {tideData && tideData.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {tideData.map((tide, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 flex items-center space-x-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${tide.type === 'high' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                            <Waves size={24} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-lg">{tide.type === 'high' ? 'High Tide' : 'Low Tide'}</p>
+                            <p className="text-gray-500">{tide.time}</p>
+                            <p className="text-sm text-gray-600">{tide.height} meters</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="p-4 bg-blue-50 rounded-lg mt-4">
+                      <h4 className="font-medium text-ocean-dark mb-2">Tide-Dependent Activities:</h4>
+                      <ul className="space-y-2 text-gray-700">
+                        <li className="flex items-start">
+                          <div className="bg-ocean-lightest rounded-full p-1 mr-2 mt-0.5">
+                            <Waves size={14} className="text-ocean" />
+                          </div>
+                          <span><strong>Low Tide:</strong> Visit Africa Pool, explore sandbars, observe tide pools</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="bg-ocean-lightest rounded-full p-1 mr-2 mt-0.5">
+                            <Waves size={14} className="text-ocean" />
+                          </div>
+                          <span><strong>High Tide:</strong> Best for swimming, boat trips, and watersports</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-4">
+                    <p>No tide data available at the moment.</p>
+                    <p className="text-sm text-gray-500 mt-2">Please check back later.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

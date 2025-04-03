@@ -27,6 +27,7 @@ export interface Database {
           title: string
           updated_at: string
           user_id: string
+          tide_dependency: string | null // Added tide dependency field
         }
         Insert: {
           category?: string
@@ -44,6 +45,7 @@ export interface Database {
           title: string
           updated_at?: string
           user_id?: string
+          tide_dependency?: string | null // Added tide dependency field
         }
         Update: {
           category?: string
@@ -61,6 +63,7 @@ export interface Database {
           title?: string
           updated_at?: string
           user_id?: string
+          tide_dependency?: string | null // Added tide dependency field
         }
         Relationships: [
           {
@@ -323,3 +326,6 @@ export type Review = Database['public']['Tables']['reviews']['Row']
 export type Operator = Database['public']['Tables']['operators']['Row']
 
 export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info'
+
+// Add enum for tide dependency
+export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null

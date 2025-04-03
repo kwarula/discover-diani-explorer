@@ -1,13 +1,12 @@
+
 import React from 'react';
-import { CloudSun, Cloud, CloudRain, CloudSnow, Sun, Wind, Droplets } from 'lucide-react'; // Keep some icons for fallback/loading
+import { CloudSun, Cloud, CloudRain, CloudSnow, Sun, Wind, Droplets, Waves } from 'lucide-react'; // Added Waves icon
 import useWeather from '@/hooks/useWeather'; // Import the hook
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
-
-// Remove the old WeatherData interface
+import { useTideData } from '@/hooks/useTideData'; // Import the tide data hook
 
 interface WeatherCardProps {
-  // Remove weatherData prop
-  currentDate: string; // Keep these props
+  currentDate: string; 
   currentTime: string;
   userName: string;
 }
@@ -15,6 +14,22 @@ interface WeatherCardProps {
 const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) => {
   // Destructure the updated return value from the hook
   const { currentWeather, forecast, loading, error } = useWeather();
+  // Get tide data
+  const { tideData, loading: tideLoading, error: tideError } = useTideData();
+
+  // Get the next tide (either high or low)
+  const getNextTide = () => {
+    if (!tideData || tideData.length === 0) return null;
+    
+    const now = Date.now();
+    const futureEvents = tideData.filter(tide => tide.timestamp > now);
+    
+    return futureEvents.length > 0 
+      ? futureEvents.sort((a, b) => a.timestamp - b.timestamp)[0] 
+      : null;
+  };
+
+  const nextTide = getNextTide();
 
   const getGradientClass = () => {
     const hour = new Date().getHours(); // Get current hour (0-23)
@@ -116,6 +131,26 @@ const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) =
           </div>
         </div>
       </div>
+
+      {/* Next Tide Information */}
+      {nextTide && (
+        <div className="mt-6 bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+          <div className="flex items-center text-white">
+            <div className={`p-2 rounded-lg mr-3 ${nextTide.type === 'high' ? 'bg-blue-500/30' : 'bg-amber-500/30'}`}>
+              <Waves size={24} className="text-white" />
+            </div>
+            <div>
+              <p className="font-medium">{nextTide.type === 'high' ? 'Next High Tide' : 'Next Low Tide'}</p>
+              <p className="text-sm text-white/80">
+                {nextTide.time} • {nextTide.height}m
+              </p>
+            </div>
+            <div className="ml-auto text-sm bg-white/20 px-3 py-1 rounded-full">
+              {nextTide.type === 'low' ? 'Good for: Africa Pool, Sandbars' : 'Good for: Swimming, Watersports'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mini forecast - Re-added using the forecast data */}
       {forecast && forecast.length > 0 && (
