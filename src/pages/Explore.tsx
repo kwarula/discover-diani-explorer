@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -7,9 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Star, Compass, Sun, Waves, Anchor, Landmark, Loader2 } from "lucide-react"; // Added Landmark, Loader2
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-// import { supabase } from '@/integrations/supabase/client'; // Removed direct supabase import
-// import { supabase } from '@/integrations/supabase/client'; // Removed direct supabase import
-import { Tables } from '@/types/database'; // Added
+import { Listing, PointOfInterest } from '@/types/database'; // Updated import
 import PoiCard from '@/components/poi/PoiCard'; // Added
 import { useListings } from '@/hooks/useListings'; // Added useListings hook
 import usePois from '@/hooks/usePois'; // Corrected default import for usePois hook
@@ -19,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link } from 'react-router-dom'; // Added Link for cards
 
 const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+// Fix: Access environment variable directly instead of validation
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
 const defaultCenter = { lat: -4.2833, lng: 39.5833 }; // Diani Beach center
 
 // --- Remove Static Sample Data ---

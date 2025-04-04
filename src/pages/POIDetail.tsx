@@ -1,263 +1,169 @@
-
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+// Update beginning of file to fix env access
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Loader } from 'lucide-react';
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { usePOI, getCategoryName } from '@/hooks/usePOI';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  CalendarClock, 
-  UserCheck, 
-  History, 
-  Landmark, 
-  Building, 
-  Mountain, 
-  Palmtree, // Changed from PalmTree 
-  Umbrella, 
-  Leaf,
-  ChevronLeft,
-  Calendar
-} from 'lucide-react';
-import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Star, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from 'react-router-dom';
+import { PointOfInterest } from '@/types/database';
+import { usePOI, getCategoryName, getCategoryIcon } from '@/hooks/usePOI';
 
-const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+// Fix: Access environment variable directly
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
 
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'historical_site':
-      return <Landmark className="h-5 w-5 mr-2" />;
-    case 'natural_feature':
-      return <Palmtree className="h-5 w-5 mr-2" />; // Changed from PalmTree to Palmtree
-    case 'cultural_site':
-      return <Building className="h-5 w-5 mr-2" />;
-    case 'conservation_site':
-      return <Leaf className="h-5 w-5 mr-2" />;
-    case 'viewpoint':
-      return <Mountain className="h-5 w-5 mr-2" />;
-    case 'beach_area':
-      return <Umbrella className="h-5 w-5 mr-2" />;
-    default:
-      return <MapPin className="h-5 w-5 mr-2" />;
-  }
+const MAP_CONTAINER_STYLE = {
+  height: '400px',
+  width: '100%'
 };
 
-const POIDetailPage = () => {
+const POIDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: poi, isLoading, error } = usePOI(id);
+  const { data: poi, isLoading, isError } = usePOI(id);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0); // Scroll to top on component mount
+  }, [id]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ocean mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading point of interest...</p>
-          </div>
-        </div>
-        <Footer />
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader className="h-12 w-12 animate-spin" />
       </div>
     );
   }
 
-  if (error || !poi) {
+  if (isError || !poi) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navigation />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">Error loading point of interest.</p>
-            <Button asChild>
-              <Link to="/points-of-interest">Back to All Points of Interest</Link>
-            </Button>
-          </div>
-        </div>
-        <Footer />
+      <div className="text-center text-red-500 min-h-screen">
+        Error: Could not load point of interest.
       </div>
     );
   }
+
+  const toggleDescription = () => {
+    setShowFullDescription(!showFullDescription);
+  };
+
+  const truncatedDescription = !showFullDescription && poi.description.length > 200
+    ? poi.description.substring(0, 200) + '...'
+    : poi.description;
+
+  const categoryName = getCategoryName(poi.category);
+  const categoryIcon = getCategoryIcon(poi.category);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Helmet>
-        <title>{poi.name} | Points of Interest | Discover Diani</title>
-      </Helmet>
+    <div className="flex flex-col min-h-screen">
       <Navigation />
 
-      {/* Header */}
-      <section className="pt-20 pb-8 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="mb-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/points-of-interest">
-                <ChevronLeft className="h-4 w-4 mr-1" /> Back to All
-              </Link>
-            </Button>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-gray-900">{poi.name}</h1>
-              <div className="flex items-center mt-2">
-                <Badge className="bg-white flex items-center border border-gray-200">
-                  {getCategoryIcon(poi.category)}
-                  {getCategoryName(poi.category)}
-                </Badge>
+      <div className="container mx-auto mt-8 px-4 md:px-8 lg:px-12">
+        <Card className="shadow-lg rounded-lg overflow-hidden">
+          <div className="relative">
+            {poi.image_urls && poi.image_urls.length > 0 ? (
+              <img
+                src={poi.image_urls[0]}
+                alt={poi.name}
+                className="w-full h-64 object-cover object-center"
+              />
+            ) : (
+              <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
+                No Image Available
               </div>
+            )}
+            <div className="absolute top-4 left-4">
+              <Badge className="uppercase text-xs font-bold">{categoryName}</Badge>
             </div>
           </div>
+
+          <CardHeader className="p-6">
+            <CardTitle className="text-2xl font-bold text-gray-800">{poi.name}</CardTitle>
+            <CardDescription className="text-gray-600">
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4" />
+                <span>{poi.latitude}, {poi.longitude}</span>
+              </div>
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-700">Description</h3>
+              <p className="text-gray-600">
+                {truncatedDescription}
+                {poi.description.length > 200 && (
+                  <Button variant="link" onClick={toggleDescription} className="p-0">
+                    {showFullDescription ? 'Show Less' : 'Show More'}
+                  </Button>
+                )}
+              </p>
+            </div>
+
+            {poi.access_notes && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-700">Access Notes</h3>
+                <p className="text-gray-600">{poi.access_notes}</p>
+              </div>
+            )}
+
+            {poi.best_visit_time && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-700">Best Time to Visit</h3>
+                <p className="text-gray-600">{poi.best_visit_time}</p>
+              </div>
+            )}
+
+            {poi.entrance_fee && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-700">Entrance Fee</h3>
+                <p className="text-gray-600">{poi.entrance_fee}</p>
+              </div>
+            )}
+
+            {poi.history && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-700">History</h3>
+                <p className="text-gray-600">{poi.history}</p>
+              </div>
+            )}
+
+            {poi.significance && (
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-700">Significance</h3>
+                <p className="text-gray-600">{poi.significance}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Map Section */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Location</h2>
+          {GOOGLE_MAPS_API_KEY ? (
+            <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+              <GoogleMap
+                mapContainerStyle={MAP_CONTAINER_STYLE}
+                center={{ lat: poi.latitude, lng: poi.longitude }}
+                zoom={15}
+              >
+                <Marker position={{ lat: poi.latitude, lng: poi.longitude }} />
+              </GoogleMap>
+            </LoadScript>
+          ) : (
+            <div className="text-red-500">
+              Google Maps API key is required to display the map.
+            </div>
+          )}
         </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="py-8 bg-white flex-grow">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Image Gallery */}
-            <div className="lg:col-span-2">
-              <div className="mb-8 rounded-lg overflow-hidden shadow-md">
-                <img
-                  src={poi.images && poi.images.length > 0 ? poi.images[0] : '/placeholder.svg'}
-                  alt={poi.name}
-                  className="w-full h-auto aspect-[16/9] object-cover"
-                />
-              </div>
-
-              {/* Description and History */}
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-display font-semibold text-gray-800 mb-3">About</h2>
-                  <p className="text-gray-700">{poi.description}</p>
-                </div>
-
-                {poi.history && (
-                  <div>
-                    <h2 className="text-2xl font-display font-semibold text-gray-800 mb-3 flex items-center">
-                      <History className="h-5 w-5 mr-2 text-ocean" />
-                      History
-                    </h2>
-                    <p className="text-gray-700">{poi.history}</p>
-                  </div>
-                )}
-
-                {poi.significance && (
-                  <div>
-                    <h2 className="text-2xl font-display font-semibold text-gray-800 mb-3 flex items-center">
-                      <Landmark className="h-5 w-5 mr-2 text-ocean" />
-                      Significance
-                    </h2>
-                    <p className="text-gray-700">{poi.significance}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column - Details and Map */}
-            <div>
-              <Card className="mb-6">
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Visitor Information</h3>
-                  <div className="space-y-4">
-                    {poi.entrance_fee && (
-                      <div className="flex items-center">
-                        <DollarSign className="h-5 w-5 text-gray-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Entrance Fee</p>
-                          <p className="text-gray-600 text-sm">{poi.entrance_fee}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {poi.best_visit_time && (
-                      <div className="flex items-center">
-                        <Clock className="h-5 w-5 text-gray-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Best Time to Visit</p>
-                          <p className="text-gray-600 text-sm">{poi.best_visit_time}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {poi.guide_required && (
-                      <div className="flex items-center">
-                        <UserCheck className="h-5 w-5 text-gray-500 mr-3" />
-                        <div>
-                          <p className="font-medium">Guide Required</p>
-                          <p className="text-gray-600 text-sm">
-                            We recommend hiring a local guide for this location
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {poi.access_notes && (
-                      <div className="flex items-start">
-                        <MapPin className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Access Notes</p>
-                          <p className="text-gray-600 text-sm">{poi.access_notes}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Map */}
-              <div className="rounded-lg overflow-hidden shadow-md h-64 mb-6">
-                {GOOGLE_MAPS_API_KEY ? (
-                  <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-                    <GoogleMap
-                      mapContainerStyle={MAP_CONTAINER_STYLE}
-                      center={{ lat: poi.latitude, lng: poi.longitude }}
-                      zoom={15}
-                    >
-                      <Marker position={{ lat: poi.latitude, lng: poi.longitude }} title={poi.name} />
-                    </GoogleMap>
-                  </LoadScript>
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-gray-100 text-gray-500">
-                    Google Maps API key is missing
-                  </div>
-                )}
-              </div>
-
-              {/* Suggested Tours */}
-              <Card>
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center">
-                    <Calendar className="h-5 w-5 mr-2 text-ocean" />
-                    Suggested Tours
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Explore this location with an experienced guide:
-                  </p>
-                  <Separator className="mb-4" />
-                  <div className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start" asChild>
-                      <Link to="/market?category=tours">
-                        <CalendarClock className="h-4 w-4 mr-2" />
-                        Find Available Tours
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
 
       <Footer />
     </div>
   );
 };
 
-export default POIDetailPage;
+export default POIDetail;

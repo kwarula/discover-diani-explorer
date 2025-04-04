@@ -1,17 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/database';
+import { PointOfInterest } from '@/types/database';
 
 // Define the shape of the hook's return value
 interface UsePoisReturn {
-  pois: Tables<'points_of_interest'>[];
+  pois: PointOfInterest[];
   loading: boolean;
   error: string | null;
   refetch: () => void; // Function to manually refetch data
 }
 
 const usePois = (): UsePoisReturn => {
-  const [pois, setPois] = useState<Tables<'points_of_interest'>[]>([]);
+  const [pois, setPois] = useState<PointOfInterest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +27,7 @@ const usePois = (): UsePoisReturn => {
         latitude, longitude, name, significance, updated_at
       `;
       const { data, error: dbError } = await supabase
-        .from('points_of_interest' as any) // Re-adding workaround
+        .from('points_of_interest')
         .select(poiColumns)
         .order('name'); // Default ordering by name
 
@@ -36,16 +37,16 @@ const usePois = (): UsePoisReturn => {
       }
 
       // Use type assertion as type inference might be unreliable
-      setPois((data as Tables<'points_of_interest'>[]) || []);
+      setPois((data as PointOfInterest[]) || []);
 
-    } catch (err: any) { // Missing closing brace was likely here or after finally
+    } catch (err: any) {
       console.error("Error fetching POIs:", err);
       setError(err.message || "Failed to load points of interest.");
       setPois([]); // Clear data on error
     } finally {
       setLoading(false);
     }
-  }; // Added missing closing brace for fetchPois function
+  };
 
   useEffect(() => {
     fetchPois();

@@ -104,8 +104,8 @@ export const useAuthState = () => {
         return;
       }
       
-      // Prepare a basic profile from available data
-      const initialProfile: Partial<Profile> = {
+      // Fix: Ensure the id field is non-optional for insert operation
+      const initialProfile = {
         id: userId,
         full_name: userData.user.user_metadata?.full_name || 
                    userData.user.user_metadata?.name || 

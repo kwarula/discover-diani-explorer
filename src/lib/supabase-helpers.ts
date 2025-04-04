@@ -2,41 +2,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define local interfaces to avoid Tables namespace issues
-interface PointOfInterest {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  latitude: number;
-  longitude: number;
-  featured?: boolean;
-  guide_required?: boolean;
-  access_notes?: string;
-  entrance_fee?: string;
-  best_visit_time?: string;
-  history?: string;
-  significance?: string;
-  images?: string[];
-  image_urls?: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface UserProfile {
-  id: string;
-  full_name?: string | null;
-  avatar_url?: string | null;
-  bio?: string | null;
-  is_tourist?: boolean | null;
-  interests?: string[] | null;
-  stay_duration?: number | null;
-  updated_at: string;
-  created_at: string;
-  username?: string | null;
-  dietary_preferences?: string[] | null;
-}
+import { PointOfInterest, UserProfile } from "@/types/database";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -94,20 +60,32 @@ export async function getAllPOIs(category?: string): Promise<PointOfInterest[] |
     query = query.eq('category', category);
   }
   
-  return await safeQueryFunction(() => query.order('name'));
+  const { data, error } = await query.order('name');
+  
+  if (error) {
+    console.error('Supabase operation error:', error);
+    return null;
+  }
+  
+  return data as PointOfInterest[];
 }
 
 /**
  * Function to get a single Point of Interest by ID
  */
 export async function getPOIById(id: string): Promise<PointOfInterest | null> {
-  return await safeQueryFunction(() => 
-    supabase
-      .from('points_of_interest')
-      .select('*')
-      .eq('id', id)
-      .single()
-  );
+  const { data, error } = await supabase
+    .from('points_of_interest')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Supabase operation error:', error);
+    return null;
+  }
+  
+  return data as PointOfInterest;
 }
 
 /**
@@ -122,49 +100,36 @@ export async function getPOIsNearLocation(
   const latDegreeDistance = radiusKm / 111;
   const lngDegreeDistance = radiusKm / (111 * Math.cos(latitude * Math.PI / 180));
   
-  return await safeQueryFunction(() => 
-    supabase
-      .from('points_of_interest')
-      .select('*')
-      .gte('latitude', latitude - latDegreeDistance)
-      .lte('latitude', latitude + latDegreeDistance)
-      .gte('longitude', longitude - lngDegreeDistance)
-      .lte('longitude', longitude + lngDegreeDistance)
-  );
-}
+  const { data, error } = await supabase
+    .from('points_of_interest')
+    .select('*')
+    .gte('latitude', latitude - latDegreeDistance)
+    .lte('latitude', latitude + latDegreeDistance)
+    .gte('longitude', longitude - lngDegreeDistance)
+    .lte('longitude', longitude + lngDegreeDistance);
 
-/**
- * Helper function for Supabase operations that handles errors consistently
- */
-export async function safeQueryFunction<T>(
-  operation: () => Promise<{ data: T | null; error: any | null }>
-): Promise<T | null> {
-  try {
-    const { data, error } = await operation();
-    
-    if (error) {
-      console.error('Supabase operation error:', error);
-      return null;
-    }
-    
-    return data;
-  } catch (error: any) {
-    console.error('Unexpected error in Supabase operation:', error);
+  if (error) {
+    console.error('Supabase operation error:', error);
     return null;
   }
+  
+  return data as PointOfInterest[];
 }
 
 /**
  * Function to check if a user has an operator profile
  */
 export async function checkUserHasOperator(userId: string): Promise<boolean> {
-  const data = await safeQueryFunction(() => 
-    supabase
-      .from('operators')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle()
-  );
+  const { data, error } = await supabase
+    .from('operators')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Supabase operation error:', error);
+    return false;
+  }
   
   return !!data;
 }
@@ -173,13 +138,18 @@ export async function checkUserHasOperator(userId: string): Promise<boolean> {
  * Function to get a user's profile
  */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  return await safeQueryFunction(() => 
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
-  );
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Supabase operation error:', error);
+    return null;
+  }
+  
+  return data as UserProfile;
 }
 
 /**
@@ -189,10 +159,15 @@ export async function updateUserProfile(userId: string, profileData: Partial<Use
   // Ensure id is included
   const dataWithId = { ...profileData, id: userId };
   
-  return await safeQueryFunction(() => 
-    supabase
-      .from('profiles')
-      .update(dataWithId)
-      .eq('id', userId)
-  );
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(dataWithId)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Supabase operation error:', error);
+    return null;
+  }
+  
+  return data;
 }

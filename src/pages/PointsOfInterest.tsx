@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -17,10 +18,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LoadScript, GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 
 const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
 const defaultCenter = { lat: -4.2833, lng: 39.5833 }; // Diani Beach center
 
 const PointsOfInterestPage = () => {

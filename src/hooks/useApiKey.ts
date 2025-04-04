@@ -15,7 +15,8 @@ export const useApiKey = (keyType: ApiKeyType, options: UseApiKeyOptions = {}) =
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { session } = useAuth();
+  // Fix: access session from the auth context correctly
+  const { user, session } = useAuth();
   
   useEffect(() => {
     const fetchApiKey = async () => {

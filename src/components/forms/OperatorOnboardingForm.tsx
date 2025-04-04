@@ -89,7 +89,7 @@ const operatorSpecialtyOptions: OptionType[] = [
 
 const TOTAL_STEPS = 5;
 const MAP_CONTAINER_STYLE = { height: '400px', width: '100%' }; // Style for map container
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // Get key from env
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Access directly with fallback
 
 const OperatorOnboardingForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -139,7 +139,6 @@ const OperatorOnboardingForm: React.FC = () => {
       console.log("New Marker Position:", newPos);
     }
   }, [form]);
-
 
   // Function to handle form submission (final step)
   const processForm = async (values: OnboardingFormValues) => {
@@ -332,7 +331,6 @@ const OperatorOnboardingForm: React.FC = () => {
    if (!GOOGLE_MAPS_API_KEY) {
       return <div className="text-red-600 p-4">Error: Google Maps API Key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.</div>;
   }
-
 
   return (
     <Card>
