@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth';
 import { toast } from 'sonner';
@@ -48,7 +49,7 @@ const ProfileSettings = () => {
         interests: profile.interests || [],
         dietary_preferences: profile.dietary_preferences || [],
       });
-      setAvatarUrl(profile.avatar_url);
+      setAvatarUrl(profile.avatar_url || null);
     }
   }, [profile]);
 
@@ -167,10 +168,21 @@ const ProfileSettings = () => {
     }
 
     try {
-      // Pass both the profile ID and the updates
+      // Convert stay_duration to number or null
+      const stayDurationValue = formState.stay_duration ? 
+        parseInt(formState.stay_duration, 10) : 
+        null;
+      
+      // Pass both the profile ID and the updates with proper type conversion
       await updateProfile({
         id: user.id,
-        ...formState
+        full_name: formState.full_name,
+        username: formState.username,
+        bio: formState.bio,
+        is_tourist: formState.is_tourist,
+        stay_duration: stayDurationValue,
+        interests: formState.interests,
+        dietary_preferences: formState.dietary_preferences
       });
       
       toast.success('Profile updated successfully!');

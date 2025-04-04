@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile, Database } from '@/types/database'; // Import Database type
+import { Profile } from '@/types/database'; 
 import { toast } from 'sonner';
 import { Provider } from '@supabase/supabase-js';
 
@@ -33,7 +33,16 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   };
 
   // Update signUp to accept username in userData
-  const signUp = async (email: string, password: string, userData: { full_name: string; username?: string; is_tourist?: boolean; stay_duration?: number; interests?: string[] }) => {
+  const signUp = async (email: string, password: string, userData: { 
+    full_name: string; 
+    username?: string; 
+    is_tourist?: boolean; 
+    stay_duration?: number; 
+    interests?: string[]; 
+    dietary_preferences?: string[];
+    bio?: string;
+    avatar_url?: string;
+  }) => {
     try {
       setIsSigningUp(true);
       
@@ -144,30 +153,31 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     full_name: string; 
     username?: string; 
     is_tourist?: boolean; 
-    stay_duration?: number; // Note: stay_duration from form is string, needs conversion before calling signUp
+    stay_duration?: number;
     interests?: string[]; 
-    dietary_preferences?: string[]; // Add dietary preferences
+    dietary_preferences?: string[];
+    bio?: string;
+    avatar_url?: string;
   }) => {
     try {
-      // Ensure profileData matches the Database['public']['Tables']['profiles']['Insert'] type
-      const profileData: Database['public']['Tables']['profiles']['Insert'] = {
+      // Prepare profile data with proper types
+      const profileData = {
         id: userId,
-        username: userData.username || null, // Ensure username can be null if needed, though likely required
+        username: userData.username || null,
         full_name: userData.full_name || null,
-        // stay_duration needs to be a number or null. Ensure conversion happens before this point.
-        stay_duration: userData.is_tourist ? (userData.stay_duration ?? null) : null, 
-        interests: userData.interests ?? null,
-        dietary_preferences: userData.dietary_preferences ?? null, // Add dietary preferences
-        // avatar_url is not collected in registration form, defaults to null
+        stay_duration: userData.stay_duration || null,
+        interests: userData.interests || null,
+        dietary_preferences: userData.dietary_preferences || null,
+        is_tourist: userData.is_tourist !== undefined ? userData.is_tourist : true,
+        bio: userData.bio || null,
+        avatar_url: userData.avatar_url || null
       };
 
-      // Remove 'as any' casts for better type checking
       const { error } = await supabase
         .from('profiles')
-        .insert(profileData); // Pass the correctly typed object
+        .insert(profileData);
 
       if (error) {
-        // Log the specific Supabase error
         console.error('Supabase insert error:', error); 
         throw error; 
       }

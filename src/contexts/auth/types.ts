@@ -12,7 +12,7 @@ export interface AuthContextType {
   isSigningOut: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, userData: any) => Promise<any>;
-  signInWithProvider: (provider: Provider) => Promise<void>;
+  signInWithProvider: (provider: Provider) => Promise<any>; // Changed to allow returning provider URL data
   signOut: () => Promise<void>;
   updateProfile: (profile: Partial<Profile>) => Promise<void>;
 }
@@ -26,7 +26,7 @@ export const AuthContext = createContext<AuthContextType>({
   isSigningOut: false,
   signIn: async () => null,
   signUp: async () => null,
-  signInWithProvider: async () => {}, 
+  signInWithProvider: async () => null, 
   signOut: async () => {},
   updateProfile: async () => {},
 });

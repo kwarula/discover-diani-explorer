@@ -358,24 +358,30 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
-          dietary_preferences: string[] | null
-          full_name: string | null
           id: string
-          interests: string[] | null
-          stay_duration: number | null
           updated_at: string
+          created_at: string
+          stay_duration: number | null
+          full_name: string | null
+          interests: string[] | null
           username: string | null
+          dietary_preferences: string[] | null
+          avatar_url?: string | null
+          bio?: string | null
+          is_tourist?: boolean | null
         }
         Insert: {
+          id: string
           created_at?: string
           dietary_preferences?: string[] | null
           full_name?: string | null
-          id: string
           interests?: string[] | null
           stay_duration?: number | null
           updated_at?: string
           username?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          is_tourist?: boolean | null
         }
         Update: {
           created_at?: string
@@ -386,6 +392,9 @@ export type Database = {
           stay_duration?: number | null
           updated_at?: string
           username?: string | null
+          avatar_url?: string | null
+          bio?: string | null 
+          is_tourist?: boolean | null
         }
         Relationships: []
       }
@@ -459,9 +468,13 @@ export type Listing = Database['public']['Tables']['listings']['Row']
 export type Review = Database['public']['Tables']['reviews']['Row']
 export type Operator = Database['public']['Tables']['operators']['Row']
 export type PointOfInterest = Database['public']['Tables']['points_of_interest']['Row']
+export type FlaggedContent = Database['public']['Tables']['flagged_content']['Row']
 
 export type OperatorStatus = 'pending_verification' | 'verified' | 'rejected' | 'needs_info'
 export type TideDependency = 'low_tide_only' | 'high_tide_only' | 'mid_to_high_tide' | 'any_tide' | null
 
 // POI Categories
 export type POICategory = 'historical_site' | 'natural_feature' | 'cultural_site' | 'conservation_site' | 'viewpoint' | 'beach_area';
+
+// Add Tables export for components using Tables reference
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];

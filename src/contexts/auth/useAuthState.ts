@@ -65,7 +65,7 @@ export const useAuthState = () => {
       // Select specific columns matching the Profile type
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, created_at, updated_at, username, full_name, dietary_preferences, interests, stay_duration, is_tourist')
+        .select('id, created_at, updated_at, username, full_name, dietary_preferences, interests, stay_duration, is_tourist, avatar_url, bio')
         .eq('id', userId)
         .single();
 
@@ -73,7 +73,7 @@ export const useAuthState = () => {
         console.error('Error fetching user profile:', error);
         setProfile(null);
       } else if (data) {
-        // Cast here if needed to ensure data matches Profile structure
+        // Cast data to ensure it matches Profile structure
         setProfile(data as Profile);
         
         // If this is a new user from OAuth (like Google), create a profile if it doesn't exist
@@ -115,7 +115,9 @@ export const useAuthState = () => {
         is_tourist: true,
         interests: null,
         dietary_preferences: null,
-        stay_duration: null
+        stay_duration: null,
+        avatar_url: null,
+        bio: null
       };
 
       // Insert the profile
@@ -128,8 +130,8 @@ export const useAuthState = () => {
         return;
       }
 
-      // Set the profile in state
-      setProfile(initialProfile as Profile);
+      // Set the profile in state with casting
+      setProfile(initialProfile as unknown as Profile);
       console.log('Created initial profile for user');
       
     } catch (error) {
