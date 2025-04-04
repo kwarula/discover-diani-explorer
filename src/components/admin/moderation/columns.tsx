@@ -1,3 +1,4 @@
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -34,7 +35,7 @@ const formatDate = (dateString: string) => {
 };
 
 // Helper function to determine badge variant based on status
-const getStatusBadgeVariant = (status: FlaggedContent['status']): "default" | "secondary" | "outline" => {
+const getStatusBadgeVariant = (status: string): "default" | "secondary" | "outline" => {
   switch (status) {
     case 'Pending':
       return 'secondary'; // Yellowish/Gray
@@ -64,7 +65,12 @@ const getContentUrl = (item: FlaggedContent): string | null => {
     }
 }
 
-export const columns: ColumnDef<FlaggedContent>[] = [
+// Export a function that returns the columns, taking the necessary handlers as arguments
+export const columns = (
+  openConfirmationDialog: (item: FlaggedContent, action: 'approve' | 'remove') => void,
+  handleWarnUser: (userId: string | null) => void,
+  handleSuspendUser: (userId: string | null) => void
+): ColumnDef<FlaggedContent>[] => [
   // 1. Select Checkbox
   {
     id: "select",
@@ -158,7 +164,7 @@ export const columns: ColumnDef<FlaggedContent>[] = [
       </Button>
     ),
     cell: ({ row }) => {
-       const status = row.getValue("status") as FlaggedContent['status'];
+       const status = row.getValue("status") as string;
        return <Badge variant={getStatusBadgeVariant(status)}>{status || 'Unknown'}</Badge>;
     },
      filterFn: (row, id, value) => {
@@ -172,12 +178,6 @@ export const columns: ColumnDef<FlaggedContent>[] = [
     cell: ({ row }) => {
       const item = row.original;
       const contentUrl = getContentUrl(item);
-
-      // TODO: Implement actual action handlers
-      const handleApproveContent = () => console.log("Approve Content (Dismiss Flag):", item.id);
-      const handleRemoveContent = () => console.log("Remove Content:", item.id);
-      const handleWarnUser = () => console.log("Warn User:", item.reported_by_user_id);
-      const handleSuspendUser = () => console.log("Suspend User:", item.reported_by_user_id);
 
       return (
         <DropdownMenu>
@@ -199,20 +199,20 @@ export const columns: ColumnDef<FlaggedContent>[] = [
             <DropdownMenuSeparator />
              {item.status === 'Pending' && (
                 <>
-                    <DropdownMenuItem onClick={handleApproveContent} className="text-green-600 focus:text-green-700 focus:bg-green-50">
+                    <DropdownMenuItem onClick={() => openConfirmationDialog(item, 'approve')} className="text-green-600 focus:text-green-700 focus:bg-green-50">
                         <ShieldCheck className="mr-2 h-4 w-4" /> Approve Content (Dismiss)
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleRemoveContent} className="text-red-600 focus:text-red-700 focus:bg-red-50">
+                    <DropdownMenuItem onClick={() => openConfirmationDialog(item, 'remove')} className="text-red-600 focus:text-red-700 focus:bg-red-50">
                        <ShieldX className="mr-2 h-4 w-4" /> Remove Content
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {/* Actions related to the reporting user */}
                     {item.reported_by_user_id && (
                         <>
-                            <DropdownMenuItem onClick={handleWarnUser} className="text-orange-600 focus:text-orange-700 focus:bg-orange-50">
+                            <DropdownMenuItem onClick={() => handleWarnUser(item.reported_by_user_id)} className="text-orange-600 focus:text-orange-700 focus:bg-orange-50">
                                 Warn User ({item.reported_by_email})
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleSuspendUser} className="text-red-600 focus:text-red-700 focus:bg-red-50">
+                            <DropdownMenuItem onClick={() => handleSuspendUser(item.reported_by_user_id)} className="text-red-600 focus:text-red-700 focus:bg-red-50">
                                 <UserX className="mr-2 h-4 w-4" /> Suspend User ({item.reported_by_email})
                             </DropdownMenuItem>
                         </>

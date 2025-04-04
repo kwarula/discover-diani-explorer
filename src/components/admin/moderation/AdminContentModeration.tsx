@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   useQuery,
@@ -17,7 +18,7 @@ import {
 } from "@tanstack/react-table";
 import { DataTable } from './DataTable'; // Assuming DataTable exists and is adapted
 import { columns } from './columns'; // Import columns definition
-import type { FlaggedContent } from './types'; // Import type from types.ts
+import { FlaggedContent } from './types'; // Import type from types.ts
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -34,8 +35,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 // TODO: Import Select for filters
-
-// FlaggedContent type is now defined and exported from ./types.ts
 
 // Helper functions (copied - consider moving to utils)
 const formatDate = (dateString: string) => {
@@ -59,8 +58,14 @@ const fetchFlaggedContent = async (): Promise<FlaggedContent[]> => {
     console.error("Supabase fetch error (flagged_content):", error);
     throw new Error(error.message || 'Failed to fetch flagged content');
   }
-  // TODO: Map data if column names differ from FlaggedContent type
-  return data || [];
+  
+  // Make sure to include the reported_by_email field in the results
+  const processedData = data?.map(item => ({
+    ...item,
+    reported_by_email: item.reported_by_email || null
+  })) || [];
+  
+  return processedData;
 };
 
 // Define possible statuses for actions/filtering
@@ -192,11 +197,11 @@ const AdminContentModeration: React.FC = () => {
    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
    const [rowSelection, setRowSelection] = useState({});
 
-   const memoizedColumns = useMemo(
-     () => columns(openConfirmationDialog, handleWarnUser, handleSuspendUser), // Pass handlers
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-     []
-   );
+   // Call the columns function and memoize the result
+   const memoizedColumns = useMemo(() => {
+     // Now calling the function with the necessary arguments
+     return columns(openConfirmationDialog, handleWarnUser, handleSuspendUser);
+   }, []);
 
     const moderationTable = useReactTable({
      data: flaggedItems,

@@ -1,14 +1,12 @@
+
 import React from 'react';
-import { Tables } from '@/types/database';
+import { Review } from '@/types/database';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, UserCircle, CheckCircle } from 'lucide-react'; // Icons
 import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
 
-// Updated type alias to use basic review data
-type ReviewData = Tables<'reviews'>;
-
 interface ReviewListProps {
-  reviews: ReviewData[]; // Use ReviewData[]
+  reviews: Review[]; // Use Review type directly
   isLoading: boolean;
   error?: string | null;
 }

@@ -1,16 +1,16 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom'; // Added Link
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, MessageSquare } from 'lucide-react'; // Icons for phone and WhatsApp
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
-import { Tables } from '@/types/database'; // Assuming types are generated
+import { Operator } from '@/types/database'; // Use the type directly
 
 // Define the expected props based on the 'operators' table structure
-// Use Pick or extend Tables<'operators'> as needed (Tables helper returns the Row type directly)
 interface VerifiedOperatorCardProps {
   operator: Pick<
-    Tables<'operators'>, // Corrected: Use Tables<'operators'> directly
+    Operator, // Use Operator type directly
     | 'id'
     | 'business_name' // Or contact_person_name if more appropriate
     | 'logo_url' // Or a dedicated profile picture field

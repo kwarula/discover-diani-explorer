@@ -30,7 +30,7 @@ const OperatorDashboardWrapper: React.FC = () => {
 
   // Type guard to ensure operator.status is treated as OperatorStatus
   const getStatus = (): OperatorStatus => {
-    if (!operator) return 'pending_verification';
+    if (!operator) return OperatorStatus.PENDING_VERIFICATION;
     return operator.status as OperatorStatus;
   };
 
@@ -44,19 +44,19 @@ const OperatorDashboardWrapper: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  if (isStatus('rejected')) {
+  if (isStatus(OperatorStatus.REJECTED)) {
     return <div>Your application has been rejected</div>;
   }
 
-  if (isStatus('needs_info')) {
+  if (isStatus(OperatorStatus.NEEDS_INFO)) {
     return <div>We need more information</div>;
   }
 
-  if (isStatus('pending_verification')) {
+  if (isStatus(OperatorStatus.PENDING_VERIFICATION)) {
     return <div>Your application is pending verification</div>;
   }
 
-  if (isStatus('verified')) {
+  if (isStatus(OperatorStatus.VERIFIED)) {
     return <div>You are verified!</div>;
   }
 

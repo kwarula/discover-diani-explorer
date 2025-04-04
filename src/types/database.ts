@@ -95,14 +95,14 @@ export type Review = {
   used_guide: boolean | null;
 };
 
-export type FlaggedContent = {
+export type FlaggedContentType = {
   id: string;
   content_id: string;
   content_type: 'Review' | 'Comment' | 'Listing' | 'OperatorProfile';
   content_snippet: string | null;
   reason: string | null;
   reported_by_user_id: string | null;
-  reported_by_email?: string; // Add this field to fix the type error
+  reported_by_email: string | null;
   status: 'Pending' | 'Resolved' | 'Dismissed';
   reported_at: string;
   resolved_at: string | null;
@@ -124,17 +124,21 @@ export enum OperatorStatus {
   PENDING_VERIFICATION = 'pending_verification',
   VERIFIED = 'verified',
   REJECTED = 'rejected',
-  SUSPENDED = 'suspended'
+  SUSPENDED = 'suspended',
+  NEEDS_INFO = 'needs_info' // Adding this to match existing code usage
 }
 
-// Namespace version for compatibility
-export namespace Tables {
-  export type Listings = Listing;
-  export type Profiles = Profile;
-  export type Operators = Operator;
-  export type PointsOfInterest = PointOfInterest;
-  export type Reviews = Review;
-  export type FlaggedContent = FlaggedContent;
+// Type alias approach to avoid circular references
+export type FlaggedContent = FlaggedContentType;
+
+// Generic interface for database tables
+export interface Tables {
+  listings: Listing;
+  profiles: Profile;
+  operators: Operator;
+  points_of_interest: PointOfInterest;
+  reviews: Review;
+  flagged_content: FlaggedContent;
 }
 
 export type { Database } from '@/integrations/supabase/types';
