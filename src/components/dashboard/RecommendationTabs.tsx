@@ -24,6 +24,12 @@ const RecommendationTabs = ({
   diningLoading,
   accommodationLoading,
 }: RecommendationTabsProps) => {
+  // Handler for card selection
+  const handleCardSelect = (id: string) => {
+    console.log(`Selected listing with ID: ${id}`);
+    // Implement navigation or detail view logic here
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-display font-bold text-ocean-dark mb-6">Recommended for You</h2>
@@ -54,7 +60,11 @@ const RecommendationTabs = ({
               </>
             ) : activities && activities.length > 0 ? (
               activities.map(activity => (
-                <RecommendationCard key={activity.id} item={activity} />
+                <RecommendationCard 
+                  key={activity.id} 
+                  listing={activity} 
+                  onSelect={handleCardSelect}
+                />
               ))
             ) : (
               <div className="col-span-3 text-center py-10 text-gray-500">
@@ -83,7 +93,11 @@ const RecommendationTabs = ({
               </>
             ) : dining && dining.length > 0 ? (
               dining.map(restaurant => (
-                <RecommendationCard key={restaurant.id} item={restaurant} />
+                <RecommendationCard 
+                  key={restaurant.id} 
+                  listing={restaurant} 
+                  onSelect={handleCardSelect}
+                />
               ))
             ) : (
               <div className="col-span-3 text-center py-10 text-gray-500">
@@ -112,7 +126,11 @@ const RecommendationTabs = ({
               </>
             ) : accommodation && accommodation.length > 0 ? (
               accommodation.map(hotel => (
-                <RecommendationCard key={hotel.id} item={hotel} />
+                <RecommendationCard 
+                  key={hotel.id} 
+                  listing={hotel} 
+                  onSelect={handleCardSelect}
+                />
               ))
             ) : (
               <div className="col-span-3 text-center py-10 text-gray-500">

@@ -6,17 +6,28 @@ import { MapPin, Star } from 'lucide-react';
 
 interface RecommendationCardProps {
   listing: Listing;
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
 }
 
 const RecommendationCard: React.FC<RecommendationCardProps> = ({ listing, onSelect }) => {
+  // Return early if listing is undefined to prevent errors
+  if (!listing) {
+    return (
+      <Card className="cursor-pointer transition-all duration-300 hover:shadow-md overflow-hidden">
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-md mb-1">Loading...</h3>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   // Use a constant default rating since our listing type doesn't include rating
   const defaultRating = 4.5;
   
   return (
     <Card 
       className="cursor-pointer transition-all duration-300 hover:shadow-md overflow-hidden"
-      onClick={() => onSelect(listing.id)}
+      onClick={() => onSelect && onSelect(listing.id)}
     >
       <div className="relative">
         <img 

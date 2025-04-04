@@ -102,6 +102,7 @@ export type FlaggedContent = {
   content_snippet: string | null;
   reason: string | null;
   reported_by_user_id: string | null;
+  reported_by_email?: string; // Add this field to fix the type error
   status: 'Pending' | 'Resolved' | 'Dismissed';
   reported_at: string;
   resolved_at: string | null;
@@ -109,14 +110,31 @@ export type FlaggedContent = {
   moderator_notes: string | null;
 };
 
-// Add this export to fix the imported type errors
+// Define enums for the application
+export enum POICategory {
+  HISTORICAL_SITE = 'historical_site',
+  NATURAL_FEATURE = 'natural_feature',
+  CULTURAL_SITE = 'cultural_site',
+  CONSERVATION_SITE = 'conservation_site',
+  VIEWPOINT = 'viewpoint',
+  BEACH_AREA = 'beach_area'
+}
+
+export enum OperatorStatus {
+  PENDING_VERIFICATION = 'pending_verification',
+  VERIFIED = 'verified',
+  REJECTED = 'rejected',
+  SUSPENDED = 'suspended'
+}
+
+// Namespace version for compatibility
 export namespace Tables {
-  export interface Listings extends Listing {}
-  export interface Profiles extends Profile {}
-  export interface Operators extends Operator {}
-  export interface PointsOfInterest extends PointOfInterest {}
-  export interface Reviews extends Review {}
-  export interface FlaggedContent extends FlaggedContent {}
+  export type Listings = Listing;
+  export type Profiles = Profile;
+  export type Operators = Operator;
+  export type PointsOfInterest = PointOfInterest;
+  export type Reviews = Review;
+  export type FlaggedContent = FlaggedContent;
 }
 
 export type { Database } from '@/integrations/supabase/types';
