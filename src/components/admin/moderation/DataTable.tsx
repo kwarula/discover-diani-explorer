@@ -4,15 +4,7 @@
 import * as React from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  // VisibilityState, // Removed for now, not yet used
   flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
   Table as ReactTable,
 } from "@tanstack/react-table";
 
@@ -25,30 +17,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-// TODO: Import Select components for status filtering later
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
-  data?: TData[];
   table: ReactTable<TData>;
-  // TODO: Add props for loading state, error state?
 }
 
 export function DataTable<TData, TValue>({
   columns,
-  data,
   table,
 }: DataTableProps<TData, TValue>) {
   return (
     <div>
       {/* Filtering Section */}
       <div className="flex items-center py-4 gap-2">
-        {/* Removed primary text filter, will use Select dropdowns */}
-        {/* TODO: Add Content Type Filter Dropdown here */}
-        {/* TODO: Add Status Filter Dropdown here */}
-        {/* <Select ... /> */}
-         <p className="text-sm text-muted-foreground">Filters:</p> {/* Placeholder */}
+        <p className="text-sm text-muted-foreground">Filters:</p> {/* Placeholder */}
       </div>
 
       {/* Table */}
@@ -90,7 +73,6 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
-                  {/* TODO: Add better empty state / loading state */}
                 </TableCell>
               </TableRow>
             )}
@@ -103,7 +85,6 @@ export function DataTable<TData, TValue>({
          <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
-          {/* TODO: Add bulk actions button if rows selected */}
         </div>
         <div className="space-x-2">
            <Button

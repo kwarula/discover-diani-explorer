@@ -2,7 +2,7 @@
 import React from 'react';
 import { Review } from '@/types/database';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, UserCircle, CheckCircle } from 'lucide-react'; // Icons
+import { Star, CheckCircle } from 'lucide-react'; // Icons
 import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
 
 interface ReviewListProps {

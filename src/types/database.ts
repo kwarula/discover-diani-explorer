@@ -1,4 +1,3 @@
-
 export type Profile = {
   id: string;
   created_at: string;
@@ -95,21 +94,6 @@ export type Review = {
   used_guide: boolean | null;
 };
 
-export type FlaggedContentType = {
-  id: string;
-  content_id: string;
-  content_type: 'Review' | 'Comment' | 'Listing' | 'OperatorProfile';
-  content_snippet: string | null;
-  reason: string | null;
-  reported_by_user_id: string | null;
-  reported_by_email: string | null;
-  status: 'Pending' | 'Resolved' | 'Dismissed';
-  reported_at: string;
-  resolved_at: string | null;
-  resolved_by_user_id: string | null;
-  moderator_notes: string | null;
-};
-
 // Define enums for the application
 export enum POICategory {
   HISTORICAL_SITE = 'historical_site',
@@ -128,8 +112,21 @@ export enum OperatorStatus {
   NEEDS_INFO = 'needs_info' // Adding this to match existing code usage
 }
 
-// Type alias approach to avoid circular references
-export type FlaggedContent = FlaggedContentType;
+// Define FlaggedContentType directly without the alias to avoid circular references
+export type FlaggedContent = {
+  id: string;
+  content_id: string;
+  content_type: 'Review' | 'Comment' | 'Listing' | 'OperatorProfile';
+  content_snippet: string | null;
+  reason: string | null;
+  reported_by_user_id: string | null;
+  reported_by_email: string | null;
+  status: 'Pending' | 'Resolved' | 'Dismissed';
+  reported_at: string;
+  resolved_at: string | null;
+  resolved_by_user_id: string | null;
+  moderator_notes: string | null;
+};
 
 // Generic interface for database tables
 export interface Tables {
