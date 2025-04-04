@@ -5,25 +5,23 @@ import { useAuth } from '@/contexts/auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Eye, EyeOff } from 'lucide-react'; // Import Eye icons
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-// Assuming you have a Google icon component or SVG
-// import GoogleIcon from '@/components/icons/GoogleIcon'; 
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // const [error, setError] = useState(''); // Remove general error
-  const [emailError, setEmailError] = useState(''); // State for email field error
-  const [passwordError, setPasswordError] = useState(''); // State for password field error
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isSigningInWithGoogle, setIsSigningInWithGoogle] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithProvider, user } = useAuth(); // Add signInWithProvider
+  const { signIn, signInWithProvider, user } = useAuth();
   
   const from = location.state?.from?.pathname || '/dashboard';
   
@@ -34,8 +32,20 @@ const Login = () => {
     }
   }, [user, navigate, from]);
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsSigningInWithGoogle(true);
+      await signInWithProvider('google');
+      // No need to navigate here as the redirect will happen automatically
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
+      // The toast is already handled in signInWithProvider
+    } finally {
+      setIsSigningInWithGoogle(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     e.preventDefault();
     
     // Clear previous errors
@@ -43,8 +53,7 @@ const Login = () => {
     setPasswordError('');
 
     if (!email || !password) {
-      // You could set specific errors here if desired, e.g., setEmailError('Email is required')
-      setPasswordError('Please fill in all fields'); // Or a general message in one field
+      setPasswordError('Please fill in all fields');
       return;
     }
     
@@ -57,10 +66,9 @@ const Login = () => {
       // Basic error routing - adjust based on actual Supabase error messages
       if (message.includes('Invalid login credentials')) {
         setPasswordError(message);
-      } else if (message.includes('Email not confirmed') || message.includes('User not found')) { // Example check
+      } else if (message.includes('Email not confirmed') || message.includes('User not found')) {
         setEmailError(message);
       } else {
-        // Fallback for unexpected errors, maybe use toast?
         setPasswordError(message); 
       }
     } finally {
@@ -74,7 +82,7 @@ const Login = () => {
       
       {/* Subtle background gradient */}
       <div className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-orange-50">
-        <Card className="w-full max-w-md bg-white/90 backdrop-blur-sm"> {/* Added slight transparency */}
+        <Card className="w-full max-w-md bg-white/90 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center text-ocean-dark">Log in to Discover Diani</CardTitle>
             <CardDescription className="text-center">
@@ -83,9 +91,7 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Removed general error display */}
-              
-              <div className="space-y-1"> {/* Reduced space */}
+              <div className="space-y-1">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -94,30 +100,30 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  aria-invalid={!!emailError} // For accessibility
+                  aria-invalid={!!emailError}
                   aria-describedby="email-error"
                 />
                 {emailError && <p id="email-error" className="text-sm text-red-600 mt-1">{emailError}</p>}
               </div>
               
-              <div className="space-y-1"> {/* Reduced space */}
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
                   <Link to="#" className="text-sm text-ocean hover:underline">
                     Forgot password?
                   </Link>
                 </div>
-                <div className="relative"> {/* Wrapper for input + icon */}
+                <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? 'text' : 'password'} // Toggle type
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    aria-invalid={!!passwordError} // For accessibility
+                    aria-invalid={!!passwordError}
                     aria-describedby="password-error"
-                    className="pr-10" // Add padding for the icon
+                    className="pr-10"
                   />
                   <button
                     type="button"
@@ -156,22 +162,31 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Social Login Button */}
+              {/* Google Login Button */}
               <Button 
                 variant="outline" 
                 className="w-full" 
                 type="button" 
-                onClick={() => signInWithProvider('google')}
+                onClick={handleGoogleSignIn}
+                disabled={isSigningInWithGoogle}
               >
-                {/* Replace with actual Google Icon */}
-                <svg className="mr-2 h-4 w-4" /* ...props for Google icon */ viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.1v2.7h5.1c-.2 1.1-.9 2.1-2.1 2.8v1.8h2.3c1.4-1.3 2.2-3.2 2.2-5.3 0-.6-.1-1.1-.2-1.7zM12.25 22c2.4 0 4.5-.8 6-2.2l-2.3-1.8c-.8.5-1.8.8-3.1.8-2.4 0-4.4-1.6-5.1-3.8H4.1v1.8C5.8 19.9 8.8 22 12.25 22zM4.1 14.3v-1.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.1H1.9C1.1 8.6 1 10.3 1 12s.1 3.4 1.1 4.9l2.1-1.6zM12.25 6c1.3 0 2.5.5 3.4 1.4l2-2C16.1 3.7 14.3 3 12.25 3 8.8 3 5.8 5.1 4.1 7.1l2.3 1.8c.7-2.2 2.7-3.9 5.1-3.9z"/></svg>
-                Google
+                {isSigningInWithGoogle ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connecting to Google...
+                  </>
+                ) : (
+                  <>
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M21.35 11.1h-9.1v2.7h5.1c-.2 1.1-.9 2.1-2.1 2.8v1.8h2.3c1.4-1.3 2.2-3.2 2.2-5.3 0-.6-.1-1.1-.2-1.7zM12.25 22c2.4 0 4.5-.8 6-2.2l-2.3-1.8c-.8.5-1.8.8-3.1.8-2.4 0-4.4-1.6-5.1-3.8H4.1v1.8C5.8 19.9 8.8 22 12.25 22zM4.1 14.3v-1.8c-.2-.6-.3-1.2-.3-1.8s.1-1.2.3-1.8V7.1H1.9C1.1 8.6 1 10.3 1 12s.1 3.4 1.1 4.9l2.1-1.6zM12.25 6c1.3 0 2.5.5 3.4 1.4l2-2C16.1 3.7 14.3 3 12.25 3 8.8 3 5.8 5.1 4.1 7.1l2.3 1.8c.7-2.2 2.7-3.9 5.1-3.9z" />
+                    </svg>
+                    Continue with Google
+                  </>
+                )}
               </Button>
-              {/* Add buttons for other providers (Facebook, Apple) here if needed */}
-
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2"> {/* Reduced space */}
+          <CardFooter className="flex flex-col space-y-2">
             <div className="text-center text-sm">
               Don't have an account?{' '}
               <Link to="/register" className="text-ocean hover:underline">

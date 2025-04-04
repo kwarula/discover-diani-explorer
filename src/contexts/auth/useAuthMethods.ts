@@ -33,7 +33,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   };
 
   // Update signUp to accept username in userData
-  const signUp = async (email: string, password: string, userData: { full_name: string; username: string; is_tourist?: boolean; stay_duration?: number; interests?: string[] }) => {
+  const signUp = async (email: string, password: string, userData: { full_name: string; username?: string; is_tourist?: boolean; stay_duration?: number; interests?: string[] }) => {
     try {
       setIsSigningUp(true);
       
@@ -92,11 +92,15 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
 
   const updateProfile = async (profileData: Partial<Profile>) => {
     try {
+      if (!profileData.id) {
+        throw new Error('Profile ID is required for updates');
+      }
+      
       // Use explicit type cast to bypass TypeScript errors with Supabase client
       const { data, error } = await supabase
         .from('profiles')
-        .update(profileData as any)
-        .eq('id', profileData.id as string) as any;
+        .update(profileData)
+        .eq('id', profileData.id) as any;
 
       if (error) {
         throw error;
@@ -116,7 +120,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   const signInWithProvider = async (provider: Provider) => {
     try {
       // No need for loading state here as Supabase handles the redirect flow
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           // Redirect back to the dashboard after successful OAuth flow
@@ -127,6 +131,8 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       if (error) {
         throw error;
       }
+      
+      return data;
     } catch (error: any) {
       toast.error(error.message || `An error occurred while signing in with ${provider}`);
       throw error;
@@ -134,10 +140,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   };
 
   // Helper function to create a user profile
-  // Update createUserProfile to include username and dietary_preferences, remove 'as any'
   const createUserProfile = async (userId: string, userData: { 
     full_name: string; 
-    username: string; 
+    username?: string; 
     is_tourist?: boolean; 
     stay_duration?: number; // Note: stay_duration from form is string, needs conversion before calling signUp
     interests?: string[]; 
@@ -153,7 +158,6 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         stay_duration: userData.is_tourist ? (userData.stay_duration ?? null) : null, 
         interests: userData.interests ?? null,
         dietary_preferences: userData.dietary_preferences ?? null, // Add dietary preferences
-        is_tourist: userData.is_tourist ?? null, 
         // avatar_url is not collected in registration form, defaults to null
       };
 
@@ -178,7 +182,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
     signUp, 
     signOut, 
     updateProfile, 
-    signInWithProvider, // Destructure the new method here
+    signInWithProvider,
     isSigningIn,
     isSigningUp,
     isSigningOut
