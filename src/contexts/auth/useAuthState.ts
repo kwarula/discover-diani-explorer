@@ -69,18 +69,18 @@ export const useAuthState = () => {
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single()
-        console.error('Error fetching user profile:', error);
-        setProfile(null);
-      } else if (data) {
-        // Cast data to ensure it matches Profile structure
-        setProfile(data as Profile);
-        
-        // If this is a new user from OAuth (like Google), create a profile if it doesn't exist
-        if (error && error.code === 'PGRST116') {
+      if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single()
+          console.error('Error fetching user profile:', error);
+          setProfile(null);
+        } else {
+          // If this is a new user, create a profile
           console.log('Profile not found for user, creating one...');
           await createInitialProfile(userId);
         }
+      } else if (data) {
+        // Cast data to ensure it matches Profile structure
+        setProfile(data as Profile);
       } else {
         // Handle case where profile doesn't exist or other null data
         console.log('No profile found, user may need to create one');
@@ -105,7 +105,7 @@ export const useAuthState = () => {
       }
       
       // Prepare a basic profile from available data
-      const initialProfile = {
+      const initialProfile: Partial<Profile> = {
         id: userId,
         full_name: userData.user.user_metadata?.full_name || 
                    userData.user.user_metadata?.name || 
@@ -130,10 +130,18 @@ export const useAuthState = () => {
         return;
       }
 
+      // Fetch the newly created profile to ensure we have all fields
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
       // Set the profile in state with casting
-      setProfile(initialProfile as unknown as Profile);
-      console.log('Created initial profile for user');
-      
+      if (newProfile) {
+        setProfile(newProfile as Profile);
+        console.log('Created initial profile for user');
+      }
     } catch (error) {
       console.error('Error creating initial profile:', error);
     }

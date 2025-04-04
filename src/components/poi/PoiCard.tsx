@@ -1,69 +1,45 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MapPin, BookOpen, Tag } from 'lucide-react'; // Icons
-import { Tables } from '@/types/database';
-import { AspectRatio } from '@/components/ui/aspect-ratio'; // Assuming aspect ratio component exists
 
-// Define the expected props based on the 'points_of_interest' table structure
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { MapPin } from 'lucide-react';
+import { PointOfInterest } from '@/types/database';
+import { useNavigate } from 'react-router-dom';
+
 interface PoiCardProps {
-  poi: Pick<
-    Tables<'points_of_interest'>,
-    | 'id'
-    | 'name'
-    | 'description'
-    | 'category'
-    | 'image_urls' // Use the first image as the card image
-    // Add other fields as needed for display or linking
-  >;
-  // Add onClick or link props if the card should be interactive
-  onClick?: (poiId: number) => void;
+  poi: PointOfInterest;
 }
 
-const PoiCard: React.FC<PoiCardProps> = ({ poi, onClick }) => {
-  const imageUrl = poi.image_urls?.[0] || '/placeholder.svg'; // Use first image or placeholder
+const PoiCard = ({ poi }: PoiCardProps) => {
+  const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    if (onClick) {
-      onClick(poi.id);
-    }
+  const handleClick = () => {
+    navigate(`/poi/${poi.id}`);
   };
 
   return (
     <Card
-      className={`w-full overflow-hidden ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
-      onClick={handleCardClick}
+      className="cursor-pointer transition-all duration-300 hover:shadow-md overflow-hidden"
+      onClick={handleClick}
     >
-      <CardHeader className="p-0">
-        <AspectRatio ratio={16 / 9}>
-          <img
-            src={imageUrl}
-            alt={poi.name ?? 'Point of Interest'}
-            className="object-cover w-full h-full"
-          />
-        </AspectRatio>
-      </CardHeader>
-      <CardContent className="p-4 grid gap-2">
-        <CardTitle className="text-lg">{poi.name}</CardTitle>
-        {poi.category && (
-          <div className="flex items-center text-xs text-muted-foreground">
-            <Tag className="h-3 w-3 mr-1" />
-            {poi.category}
-          </div>
-        )}
-        <CardDescription className="text-sm line-clamp-3">
-          {poi.description || 'No description available.'}
-        </CardDescription>
-        {/* Optional: Add location icon or link to map */}
-        {/* <div className="flex items-center text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3 mr-1" />
-          Location Placeholder
-        </div> */}
-        {/* Optional: Add link/button to view details */}
-        {/* {onClick && (
-          <Button variant="link" size="sm" className="p-0 h-auto justify-start">
-            Learn More
-          </Button>
-        )} */}
+      <div className="relative">
+        <img
+          src={poi.image_urls?.[0] || '/placeholder-poi.jpg'}
+          alt={poi.name}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute bottom-2 left-2 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium">
+          {poi.category}
+        </div>
+      </div>
+      <CardContent className="p-4">
+        <h3 className="font-semibold text-md mb-1">{poi.name}</h3>
+        <div className="flex items-center text-muted-foreground text-xs mb-2">
+          <MapPin className="mr-1 h-3 w-3" />
+          <span>
+            {poi.latitude.toFixed(4)}, {poi.longitude.toFixed(4)}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground line-clamp-3">{poi.description}</p>
       </CardContent>
     </Card>
   );

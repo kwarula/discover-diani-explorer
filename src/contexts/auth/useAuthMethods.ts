@@ -105,21 +105,30 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         throw new Error('Profile ID is required for updates');
       }
       
-      // Use explicit type cast to bypass TypeScript errors with Supabase client
-      const { data, error } = await supabase
+      // Update the profile in the database
+      const { error } = await supabase
         .from('profiles')
         .update(profileData)
-        .eq('id', profileData.id) as any;
+        .eq('id', profileData.id);
 
       if (error) {
         throw error;
       }
 
-      // Update the profile state
-      setProfile(prev => prev ? { ...prev, ...profileData } : null);
+      // Fetch the updated profile
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileData.id)
+        .single();
+
+      // Update the profile state with the updated profile
+      if (updatedProfile) {
+        setProfile(updatedProfile as Profile);
+      }
       
       toast.success('Profile updated successfully');
-      return data;
+      return updatedProfile;
     } catch (error: any) {
       toast.error(error.message || 'An error occurred while updating your profile');
       throw error;
