@@ -25,7 +25,7 @@ const reviewFormSchema = z.object({
   used_guide: z.boolean().optional(),
 });
 
-type ReviewFormValues = z.infer<typeof reviewFormSchema>;
+export type ReviewFormValues = z.infer<typeof reviewFormSchema>; // Export the type
 
 interface ReviewFormProps {
   listingId?: string; // Pass either listingId or operatorId

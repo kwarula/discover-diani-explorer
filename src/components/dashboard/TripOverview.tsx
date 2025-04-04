@@ -1,21 +1,22 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTideData } from '@/hooks/useTideData';
-import { Waves } from 'lucide-react';
-import { Calendar, Compass, Map, Edit2, PlusCircle } from 'lucide-react';
+import usePois from '@/hooks/usePois'; // Import usePois
+import { Waves, Calendar, Compass, Map, Edit2, PlusCircle, AlertCircle, Loader2 } from 'lucide-react'; // Added icons
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Profile } from '@/types/database';
+import { Profile, PointOfInterest } from '@/types/database'; // Added PointOfInterest
 
 interface TripOverviewProps {
   profile: Profile | null;
 }
 
 const TripOverview = ({ profile }: TripOverviewProps) => {
-  const { tideData } = useTideData();
-  
+  // Safely access the hook data with proper loading and error handling
+  const { tideData, loading: tideLoading, error: tideError } = useTideData();
+  const { pois, loading: poisLoading, error: poisError } = usePois(); // Use the hook
+
   const getCurrentTideState = () => {
     if (!tideData || tideData.length < 2) return null;
     
@@ -80,7 +81,7 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
               <div className="text-center">
                 <p className="text-sm text-gray-500 mb-3">Add your trip dates for better recommendations!</p>
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/profile/edit">
+                  <Link to="/profile"> {/* Changed link destination */}
                     <PlusCircle className="w-4 h-4 mr-2" /> Add Dates
                   </Link>
                 </Button>
@@ -97,7 +98,7 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
              </CardTitle>
              {profile?.interests && profile.interests.length > 0 && (
                <Button variant="ghost" size="sm" className="text-coral hover:text-coral-dark p-1 h-auto" asChild>
-                 <Link to="/profile/edit">
+                 <Link to="/profile"> {/* Changed link destination */}
                    <Edit2 className="w-4 h-4" />
                  </Link>
                </Button>
@@ -116,7 +117,7 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
               <div className="text-center">
                  <p className="text-sm text-gray-500 mb-3">Tell us your interests for personalized tips!</p>
                  <Button variant="outline" size="sm" asChild>
-                   <Link to="/profile/edit">
+                   <Link to="/profile"> {/* Changed link destination */}
                      <PlusCircle className="w-4 h-4 mr-2" /> Add Interests
                    </Link>
                  </Button>
@@ -134,16 +135,36 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
           </CardHeader>
           <CardContent className="flex flex-col flex-grow">
              <p className="text-gray-500 text-sm mb-3">Discover attractions around you.</p>
-             <div className="text-sm text-gray-600 mb-4 space-y-1 flex-grow">
-               <p><i>Nearby suggestions coming soon...</i></p>
+             <div className="text-sm text-gray-600 mb-4 space-y-2 flex-grow">
+               {poisLoading ? (
+                 <div className="flex items-center justify-center py-4">
+                   <Loader2 className="w-6 h-6 animate-spin text-ocean" />
+                 </div>
+               ) : poisError ? (
+                 <div className="flex items-center text-red-600">
+                   <AlertCircle className="w-4 h-4 mr-2" />
+                   <span>{typeof poisError === 'string' ? poisError : 'Error loading POIs'}</span>
+                 </div>
+               ) : pois && pois.length > 0 ? (
+                 // Display first 2 POIs as simple links for now
+                 pois.slice(0, 2).map((poi: PointOfInterest) => (
+                   <Link key={poi.id} to={`/poi/${poi.id}`} className="block hover:text-ocean-dark group">
+                     <p className="font-medium group-hover:underline">{poi.name}</p>
+                     <p className="text-xs text-gray-500">{poi.category}</p>
+                   </Link>
+                 ))
+               ) : (
+                 <p>No points of interest found.</p>
+               )}
              </div>
-             <Button className="mt-auto bg-ocean hover:bg-ocean-dark text-white w-full">
-               Open Interactive Map
+             {/* Link the button to the Explore page */}
+             <Button className="mt-auto bg-ocean hover:bg-ocean-dark text-white w-full" asChild>
+               <Link to="/explore">Open Interactive Map</Link>
              </Button>
           </CardContent>
         </Card>
         
-        {tideState && (
+        {!tideLoading && !tideError && tideState && (
           <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 shadow-md">
             <CardContent className="pt-6">
               <div className="flex items-center mb-4">
@@ -168,6 +189,30 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
                   ))}
                 </ul>
               </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {tideLoading && (
+          <Card className="bg-gray-50">
+            <CardContent className="pt-6 flex justify-center items-center min-h-[200px]">
+              <Loader2 className="w-6 h-6 animate-spin text-ocean mr-2" />
+              <p className="text-ocean">Loading tide information...</p>
+            </CardContent>
+          </Card>
+        )}
+        
+        {tideError && !tideLoading && (
+          <Card className="bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center text-red-600 mb-3">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                <h3 className="font-semibold">Unable to load tide data</h3>
+              </div>
+              <p className="text-sm text-gray-600">
+                We'll have tide predictions available for you soon. In the meantime, 
+                check with local beachfront services for current conditions.
+              </p>
             </CardContent>
           </Card>
         )}

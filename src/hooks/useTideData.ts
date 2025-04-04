@@ -1,9 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useApiKey } from './useApiKey';
 
-// Types for tide data
+// Constants for Diani Beach, Kenya
+const LAT = -4.2767;
+const LON = 39.5867;
+
+// Type for individual tide data points
 export interface TidePoint {
   type: 'high' | 'low';
   time: string;
@@ -16,71 +18,49 @@ export const useTideData = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
-  const { 
-    apiKey: worldTidesApiKey, 
-    loading: loadingWorldTidesKey,
-    error: worldTidesKeyError 
-  } = useApiKey('worldtides', { showToastOnError: false });
-
+  // API key from environment variable
+  const [worldTidesApiKey, setWorldTidesApiKey] = useState<string>('');
+  const [loadingWorldTidesKey, setLoadingWorldTidesKey] = useState<boolean>(true);
+  const [worldTidesKeyError, setWorldTidesKeyError] = useState<boolean>(false);
+  
+  // Get API key
   useEffect(() => {
+    const apiKey = import.meta.env.VITE_WORLDTIDES_API_KEY;
+    
+    if (apiKey) {
+      setWorldTidesApiKey(apiKey);
+      setLoadingWorldTidesKey(false);
+    } else {
+      console.error('World Tides API key not found in environment variables');
+      setWorldTidesKeyError(true);
+      setLoadingWorldTidesKey(false);
+      
+      // Generate fallback data immediately when key is missing
+      const fallbackData: TidePoint[] = generateFallbackData();
+      setTideData(fallbackData);
+      setLoading(false);
+    }
+  }, []);
+  
+  // Fetch tide data
+  useEffect(() => {
+    // Skip fetching if we're still loading the API key or there was an error
+    if (loadingWorldTidesKey || worldTidesKeyError || !worldTidesApiKey) {
+      return;
+    }
+    
     const fetchTideData = async () => {
-      // Wait for API key to load before proceeding
-      if (loadingWorldTidesKey) {
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      
-      // Diani Beach coordinates
-      const LAT = -4.28;
-      const LON = 39.58;
-      
-      // Check if API key exists
-      if (!worldTidesApiKey) {
-        console.error('World Tides API key is missing');
-        setError(worldTidesKeyError || 'World Tides API key is missing.');
-        setLoading(false);
-        
-        // Provide fallback data for development
-        const fallbackData: TidePoint[] = [
-          {
-            type: 'high',
-            time: '08:30 AM',
-            height: 1.8,
-            timestamp: Date.now() + 1000 * 60 * 60 * 2 // 2 hours from now
-          },
-          {
-            type: 'low',
-            time: '2:45 PM',
-            height: 0.3,
-            timestamp: Date.now() + 1000 * 60 * 60 * 6 // 6 hours from now
-          },
-          {
-            type: 'high',
-            time: '9:10 PM',
-            height: 1.9,
-            timestamp: Date.now() + 1000 * 60 * 60 * 12 // 12 hours from now
-          },
-          {
-            type: 'low',
-            time: '3:20 AM (Tomorrow)',
-            height: 0.2,
-            timestamp: Date.now() + 1000 * 60 * 60 * 18 // 18 hours from now
-          }
-        ];
-        
-        setTideData(fallbackData);
-        return;
-      }
-      
       try {
-        // Current date in format YYYY-MM-DD
+        setLoading(true);
+        setError(null);
+        
+        // Set today's date in the format YYYY-MM-DD
         const today = new Date().toISOString().split('T')[0];
         
         // World Tides API endpoint
         const response = await axios.get(
-          `https://www.worldtides.info/api/v3?extremes&date=${today}&lat=${LAT}&lon=${LON}&key=${worldTidesApiKey}`
+          `https://www.worldtides.info/api/v3?extremes&date=${today}&lat=${LAT}&lon=${LON}&key=${worldTidesApiKey}`,
+          { timeout: 10000 } // Add 10s timeout to prevent long blocking
         );
         
         if (response.data && response.data.extremes) {
@@ -117,33 +97,7 @@ export const useTideData = () => {
         setError(err instanceof Error ? err.message : 'Failed to fetch tide data');
         
         // Provide fallback data in case of error
-        const fallbackData: TidePoint[] = [
-          {
-            type: 'high',
-            time: '08:30 AM',
-            height: 1.8,
-            timestamp: Date.now() + 1000 * 60 * 60 * 2
-          },
-          {
-            type: 'low',
-            time: '2:45 PM',
-            height: 0.3,
-            timestamp: Date.now() + 1000 * 60 * 60 * 6
-          },
-          {
-            type: 'high',
-            time: '9:10 PM',
-            height: 1.9,
-            timestamp: Date.now() + 1000 * 60 * 60 * 12
-          },
-          {
-            type: 'low',
-            time: '3:20 AM (Tomorrow)',
-            height: 0.2,
-            timestamp: Date.now() + 1000 * 60 * 60 * 18
-          }
-        ];
-        
+        const fallbackData: TidePoint[] = generateFallbackData();
         setTideData(fallbackData);
       } finally {
         setLoading(false);
@@ -152,6 +106,35 @@ export const useTideData = () => {
 
     fetchTideData();
   }, [worldTidesApiKey, loadingWorldTidesKey, worldTidesKeyError]);
+
+  const generateFallbackData = (): TidePoint[] => {
+    return [
+      {
+        type: 'high',
+        time: '08:30 AM',
+        height: 1.8,
+        timestamp: Date.now() + 1000 * 60 * 60 * 2
+      },
+      {
+        type: 'low',
+        time: '2:45 PM',
+        height: 0.3,
+        timestamp: Date.now() + 1000 * 60 * 60 * 6
+      },
+      {
+        type: 'high',
+        time: '9:10 PM',
+        height: 1.9,
+        timestamp: Date.now() + 1000 * 60 * 60 * 12
+      },
+      {
+        type: 'low',
+        time: '3:20 AM (Tomorrow)',
+        height: 0.2,
+        timestamp: Date.now() + 1000 * 60 * 60 * 18
+      }
+    ];
+  };
 
   return { tideData, loading, error };
 };

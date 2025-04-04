@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
@@ -34,17 +33,62 @@ export async function uploadFileToSupabase(
   bucketName: string,
   filePath: string
 ): Promise<string> {
+  // Validate input parameters
+  if (!file) throw new Error("No file provided");
+  if (!bucketName) throw new Error("No bucket name provided");
+  if (!filePath) throw new Error("No file path provided");
+  
+  console.log(`Attempting to upload file "${file.name}" (${file.size} bytes) to ${bucketName}/${filePath}`);
+  
   try {
+    // Check file size (10MB limit for most Supabase plans)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds maximum allowed size (10MB). File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    }
+    
+    // Check if bucket exists by listing buckets
+    try {
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      
+      if (bucketError) {
+        console.error("Error checking buckets:", bucketError);
+        throw new Error(`Failed to access storage: ${bucketError.message}`);
+      }
+      
+      const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+      if (!bucketExists) {
+        console.error(`Bucket '${bucketName}' does not exist`);
+        throw new Error(`Storage bucket '${bucketName}' not found. Please contact support.`);
+      }
+    } catch (bucketCheckError: any) {
+      console.error("Error during bucket check:", bucketCheckError);
+      // Continue anyway - bucket might exist but user might not have list permissions
+    }
+
+    // Attempt to upload the file
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
-        cacheControl: '3600', // Optional: Cache control header
-        upsert: true, // Optional: Overwrite file if it exists
+        cacheControl: '3600', // 1 hour cache
+        upsert: true, // Overwrite file if it exists
       });
 
     if (uploadError) {
-      console.error(`Supabase upload error (${bucketName}/${filePath}):`, uploadError);
-      throw new Error(`Failed to upload file: ${uploadError.message}`);
+      // Handle specific error types
+      if (uploadError.message.includes("duplicate")) {
+        console.warn(`File at path ${filePath} already exists, attempting to overwrite`);
+        // Try to get URL anyway - the file might exist and that's ok with upsert
+      } else if (uploadError.message.includes("permission")) {
+        console.error(`Permission denied uploading to ${bucketName}/${filePath}:`, uploadError);
+        throw new Error(`Permission denied: You don't have access to upload to this location.`);
+      } else if (uploadError.message.includes("auth")) {
+        console.error(`Authentication error uploading to ${bucketName}/${filePath}:`, uploadError);
+        throw new Error(`Authentication error: Please log out and log back in.`);
+      } else {
+        console.error(`Supabase upload error (${bucketName}/${filePath}):`, uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
     }
 
     // Get the public URL
@@ -53,16 +97,32 @@ export async function uploadFileToSupabase(
       .getPublicUrl(filePath);
 
     if (!urlData || !urlData.publicUrl) {
-       console.error(`Supabase getPublicUrl error (${bucketName}/${filePath}): URL data missing`);
+      console.error(`Failed to get public URL for ${bucketName}/${filePath}`);
       throw new Error("Failed to get public URL for the uploaded file.");
     }
 
-    console.log(`File uploaded successfully to ${bucketName}/${filePath}: ${urlData.publicUrl}`);
+    console.log(`File uploaded successfully to ${bucketName}/${filePath}`);
+    console.log(`Public URL: ${urlData.publicUrl}`);
     return urlData.publicUrl;
 
-  } catch (error) {
-    console.error("Unexpected error during file upload:", error);
-    // Re-throw the error to be caught by the calling function
-    throw error;
+  } catch (error: any) {
+    // Add more context to the error
+    const enhancedError = new Error(
+      `Error uploading file ${file.name} to ${bucketName}/${filePath}: ${error.message || 'Unknown error'}`
+    );
+    console.error(enhancedError);
+    
+    // Log additional debugging info
+    console.error("Upload error details:", {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      bucket: bucketName,
+      path: filePath,
+      error: error.message || 'Unknown error'
+    });
+    
+    // Re-throw with more context
+    throw enhancedError;
   }
 }

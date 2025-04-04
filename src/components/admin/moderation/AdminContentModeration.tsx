@@ -22,10 +22,11 @@ import { AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
 import ModerationConfirmDialog from './ModerationConfirmDialog';
 import { fetchFlaggedContent, updateFlagStatus, removeContent } from './moderationService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select
 
 // Define possible statuses for actions/filtering
-type ModerationStatus = 'Pending' | 'Resolved';
-type ModerationAction = 'approve' | 'remove';
+type ModerationStatus = 'Pending' | 'Resolved' | 'Dismissed'; // Added Dismissed to match filter
+type ModerationAction = 'approve' | 'remove'; // 'approve' maps to 'Resolved', 'remove' triggers content deletion + 'Resolved'
 
 const AdminContentModeration: React.FC = () => {
   const { data: flaggedItems = [], isLoading, isError, error } = useQuery<FlaggedContent[], Error>({
@@ -46,9 +47,10 @@ const AdminContentModeration: React.FC = () => {
 
   // --- Mutations ---
 
-  // Mutation to update the status of a flagged item (e.g., set to 'Resolved')
+  // Mutation to update the status of a flagged item (e.g., set to 'Resolved' or 'Dismissed')
   const updateFlagStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: ModerationStatus }) => {
+      // Assuming updateFlagStatus handles setting resolved_at, resolved_by_user_id etc.
       await updateFlagStatus(id, status);
     },
     onSuccess: (_, variables) => {
@@ -63,9 +65,10 @@ const AdminContentModeration: React.FC = () => {
     }
   });
 
-  // Mutation for removing the actual content (Review, Comment, etc.)
+  // Mutation for removing the actual content (Review, Comment, etc.) AND resolving the flag
   const removeContentMutation = useMutation({
     mutationFn: async ({ flagId, contentId, contentType }: { flagId: string, contentId: string, contentType: string }) => {
+      // This service function should ideally perform both actions in a transaction if possible
       await removeContent(flagId, contentId, contentType);
     },
     onSuccess: () => {
@@ -95,12 +98,15 @@ const AdminContentModeration: React.FC = () => {
     if (!userId) return;
     console.log("Warn User:", userId);
     toast.info("Warn User action not implemented.");
+    // TODO: Implement logic, maybe open a dialog or call a mutation
   };
-  
+
   const handleSuspendUser = (userId: string | null) => {
     if (!userId) return;
     console.log("Suspend User:", userId);
     toast.info("Suspend User action not implemented.");
+    // TODO: Implement logic, likely involves calling updateUserStatusMutation from User Management
+    // This might require passing the mutation function down or using a shared context/state manager.
   };
 
   const handleConfirmAction = () => {
@@ -114,10 +120,10 @@ const AdminContentModeration: React.FC = () => {
     }
 
     switch (dialogState.actionType) {
-      case 'approve':
+      case 'approve': // 'Approve' here means resolving the flag without removing content
         updateFlagStatusMutation.mutate({ id: dialogState.itemId, status: 'Resolved' });
         break;
-      case 'remove':
+      case 'remove': // 'Remove' means deleting the content and resolving the flag
         removeContentMutation.mutate({
           flagId: itemToActOn.id,
           contentId: itemToActOn.content_id,
@@ -136,8 +142,10 @@ const AdminContentModeration: React.FC = () => {
 
   // Call the columns function and memoize the result
   const memoizedColumns = useMemo(() => {
+    // Pass necessary handlers to the columns function
     return createColumns(openConfirmationDialog, handleWarnUser, handleSuspendUser);
-  }, []);
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Dependencies array is empty assuming handlers have stable references
 
   const moderationTable = useReactTable({
     data: flaggedItems,
@@ -159,18 +167,45 @@ const AdminContentModeration: React.FC = () => {
 
       {/* Filters */}
       <div className="flex items-center py-4 gap-2">
-        <Skeleton className="h-10 w-[180px]" /> {/* Type Filter placeholder */}
-        <Skeleton className="h-10 w-[180px]" /> {/* Status Filter placeholder */}
+         {/* Type Filter */}
+         <Select
+           value={(isLoading || isError) ? '' : (moderationTable.getColumn('content_type')?.getFilterValue() as string) ?? 'all'}
+           onValueChange={(value) => moderationTable.getColumn('content_type')?.setFilterValue(value === 'all' ? '' : value)}
+           disabled={isLoading || isError}
+         >
+           <SelectTrigger className="w-[180px]">
+             <SelectValue placeholder="Filter by Type" />
+           </SelectTrigger>
+           <SelectContent>
+             <SelectItem value="all">All Types</SelectItem>
+             <SelectItem value="Review">Review</SelectItem>
+             <SelectItem value="Comment">Comment</SelectItem>
+             <SelectItem value="Listing">Listing</SelectItem>
+             <SelectItem value="OperatorProfile">Operator Profile</SelectItem>
+           </SelectContent>
+         </Select>
+         {/* Status Filter */}
+         <Select
+           value={(isLoading || isError) ? '' : (moderationTable.getColumn('status')?.getFilterValue() as string) ?? 'all'}
+           onValueChange={(value) => moderationTable.getColumn('status')?.setFilterValue(value === 'all' ? '' : value)}
+           disabled={isLoading || isError}
+         >
+           <SelectTrigger className="w-[180px]">
+             <SelectValue placeholder="Filter by Status" />
+           </SelectTrigger>
+           <SelectContent>
+             <SelectItem value="all">All Statuses</SelectItem>
+             <SelectItem value="Pending">Pending</SelectItem>
+             <SelectItem value="Resolved">Resolved</SelectItem>
+             <SelectItem value="Dismissed">Dismissed</SelectItem>
+           </SelectContent>
+         </Select>
       </div>
 
       {/* Table */}
       {isLoading ? (
         <div className="space-y-4">
-          {/* Keep skeleton filters for loading state */}
-          <div className="flex items-center py-4 gap-2">
-            <Skeleton className="h-10 w-[180px]" /> {/* Type Filter placeholder */}
-            <Skeleton className="h-10 w-[180px]" /> {/* Status Filter placeholder */}
-          </div>
+          {/* Keep skeleton filters for loading state - No need to repeat filters here */}
           <div className="rounded-md border">
             {/* Simulate table rows */}
             <div className="p-4 border-b"><Skeleton className="h-5 w-full" /></div>

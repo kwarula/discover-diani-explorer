@@ -1,8 +1,9 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
+import { toast } from 'sonner';
+import { logError } from '@/utils/errorLogger';
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -10,142 +11,240 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // Set up auth state listener FIRST - important for preventing auth deadlocks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-
-        // Fetch the profile when auth state changes and we have a user
-        // Use setTimeout to avoid potential Supabase auth deadlocks
-        if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-          }, 0);
-        } else {
-          // No user in the new auth state, set profile null and loading false
-          setProfile(null);
-          setIsLoading(false);
-        }
+  // Function to create an initial profile - returns success boolean
+  const createInitialProfile = useCallback(async (userId: string): Promise<boolean> => {
+    console.log('[createInitialProfile] Starting profile creation for user:', userId);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) {
+        const error = new Error('Could not get user data');
+        logError(error, { context: 'createInitialProfile', user: userId });
+        toast.error('Failed to create profile: User data not available');
+        return false;
       }
-    );
 
-    // THEN check for existing session
-    const getCurrentSession = async () => {
+      console.log('[createInitialProfile] User data retrieved:', userData.user.email);
+      
+      // Create initial profile with default fields that match our schema
+      const initialProfileData = {
+        id: userId,
+        full_name: userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || 'User',
+        username: null,
+        avatar_url: null,
+        bio: null,
+        is_tourist: true,
+        dietary_preferences: [],
+        interests: [],
+        stay_duration: null,
+        role: 'user',
+        status: 'active'
+      };
+
+      console.log('[createInitialProfile] Inserting profile with data:', initialProfileData);
+
+      // Run health check on the database first - debug profile table schema
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-
-        // Fetch the user profile if we have a user
-        if (currentSession?.user) {
-          await fetchUserProfile(currentSession.user.id);
+        const { data: tableInfo, error: tableError } = await supabase
+          .from('profiles')
+          .select('*')
+          .limit(1);
+          
+        if (tableError) {
+          console.error('[createInitialProfile] Table health check failed:', tableError);
         } else {
-          setIsLoading(false);
+          console.log('[createInitialProfile] Table structure verified:', 
+            Object.keys(tableInfo?.[0] || {}).join(', '));
         }
-      } catch (error) {
-        console.error('Error fetching session:', error);
-        setIsLoading(false);
+      } catch (e) {
+        console.warn('[createInitialProfile] Table health check exception:', e);
       }
-    };
 
-    getCurrentSession();
+      // Make sure we're using an array for the insert operation
+      const { error } = await supabase
+        .from('profiles')
+        .insert([initialProfileData]);
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      if (error) {
+        logError(error, { 
+          context: 'createInitialProfile:insert', 
+          user: userId,
+          data: { code: error.code }
+        });
+        
+        // Provide more specific error messages
+        if (error.code === '23505') { // Unique violation
+          console.warn('[createInitialProfile] Profile already exists for user:', userId);
+          toast.error('Profile already exists');
+          // For unique violation, we consider this a "success" since the profile exists
+          return true;
+        } else if (error.code === '23503') { // Foreign key violation
+          toast.error('Authentication error: User does not exist in auth system');
+        } else if (error.message.includes('role')) {
+          console.error('[createInitialProfile] Role field error. Schema mismatch detected.');
+          toast.error('Database schema issue: Check role field');
+          
+          // Try a fallback with just basic fields
+          const { error: fallbackError } = await supabase
+            .from('profiles')
+            .insert([{ 
+              id: userId,
+              full_name: initialProfileData.full_name 
+            }]);
+            
+          if (!fallbackError) {
+            console.log('[createInitialProfile] Fallback profile created successfully');
+            return true;
+          } else {
+            console.error('[createInitialProfile] Fallback insert also failed:', fallbackError);
+          }
+        } else if (error.message.includes('status')) {
+          console.error('[createInitialProfile] Status field error. Schema mismatch detected.');
+          toast.error('Database schema issue: Check status field');
+        } else {
+          toast.error(`Failed to create profile: ${error.message}`);
+        }
+        return false;
+      }
+      
+      console.log('[createInitialProfile] Profile inserted successfully for user:', userId);
+      return true;
+    } catch (error: any) {
+      logError(error, { 
+        context: 'createInitialProfile:exception', 
+        user: userId, 
+        sendToAnalytics: true 
+      });
+      toast.error(`Unexpected error during profile creation: ${error.message || 'Unknown error'}`);
+      return false;
+    }
   }, []);
 
   // Function to fetch user profile from 'profiles' table
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string | undefined) => {
+    if (!userId) {
+      setProfile(null);
+      setIsLoading(false);
+      return;
+    }
+
+    let fetchedProfile: Profile | null = null;
+    let profileExists = false;
+
     try {
-      setIsLoading(true);
-      
-      // Select specific columns matching the Profile type
+      // Attempt to fetch existing profile with all fields including role and status
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, created_at, updated_at, username, full_name, dietary_preferences, interests, stay_duration, is_tourist, avatar_url, bio')
+        .select('*') // Select all fields including role and status
         .eq('id', userId)
         .single();
 
-      if (error) {
-        if (error.code !== 'PGRST116') { // PGRST116 = 0 rows found by .single()
-          console.error('Error fetching user profile:', error);
-          setProfile(null);
+      if (data) {
+        fetchedProfile = data as Profile;
+        profileExists = true;
+        console.log('[fetchUserProfile] Profile found:', fetchedProfile);
+      } else if (error && error.code === 'PGRST116') { // Profile not found
+        console.log('[fetchUserProfile] Profile not found. Attempting creation...');
+        const creationSuccess = await createInitialProfile(userId);
+
+        if (creationSuccess) {
+          // Fetch the newly created profile
+          const { data: newData, error: newError } = await supabase
+            .from('profiles')
+            .select('*') // Select all fields
+            .eq('id', userId)
+            .single();
+
+          if (newData) {
+            fetchedProfile = newData as Profile;
+            profileExists = true;
+            console.log('[fetchUserProfile] Newly created profile fetched:', fetchedProfile);
+          } else if (newError) {
+            logError(newError, { 
+              context: 'fetchUserProfile:fetchNewProfile', 
+              user: userId 
+            });
+            toast.error('Error retrieving your profile');
+          }
         } else {
-          // If this is a new user, create a profile
-          console.log('Profile not found for user, creating one...');
-          await createInitialProfile(userId);
+          console.error('[fetchUserProfile] Profile creation failed.');
+          toast.error('Could not create your profile. Please try again later.');
         }
-      } else if (data) {
-        // Cast data to ensure it matches Profile structure
-        setProfile(data as Profile);
-      } else {
-        // Handle case where profile doesn't exist or other null data
-        console.log('No profile found, user may need to create one');
-        await createInitialProfile(userId);
+      } else if (error) {
+        logError(error, { 
+          context: 'fetchUserProfile:fetchExisting', 
+          user: userId 
+        });
+        toast.error('Error loading profile');
       }
-    } catch (error) {
-      console.error('Error in fetch profile:', error);
+    } catch (error: any) {
+      logError(error, { 
+        context: 'fetchUserProfile:exception', 
+        user: userId, 
+        sendToAnalytics: true 
+      });
+      toast.error(`Profile loading error: ${error.message || 'Unknown error'}`);
     } finally {
+      setProfile(fetchedProfile);
       setIsLoading(false);
     }
-  };
+  }, [createInitialProfile]);
 
-  // Create an initial profile for users who sign in with OAuth providers
-  const createInitialProfile = async (userId: string) => {
-    try {
-      // Get user details from auth.users
-      const { data: userData } = await supabase.auth.getUser();
-      
-      if (!userData || !userData.user) {
-        console.error('Could not get user data for profile creation');
-        return;
+  useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates on unmounted component
+
+    // Listener for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, currentSession) => {
+        if (!isMounted) return;
+
+        console.log("[onAuthStateChange] Auth state changed. Session:", currentSession);
+        const currentUser = currentSession?.user || null;
+        setSession(currentSession);
+        setUser(currentUser);
+        // Fetch profile immediately when auth state changes
+        await fetchUserProfile(currentUser?.id);
       }
-      
-      // Fix: Ensure the id field is a valid value for the insert operation
-      const initialProfile = {
-        id: userId,
-        full_name: userData.user.user_metadata?.full_name || 
-                   userData.user.user_metadata?.name || 
-                   'User',
-        username: null,
-        // Default values for a new user
-        is_tourist: true,
-        interests: null,
-        dietary_preferences: null,
-        stay_duration: null,
-        avatar_url: null,
-        bio: null
-      };
+    );
 
-      // Insert the profile
-      const { error } = await supabase
-        .from('profiles')
-        .insert([initialProfile]); // Fixed: Wrap initialProfile in array
+    // Initial check for session on mount
+    const getCurrentSessionAndProfile = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!isMounted) return;
 
-      if (error) {
-        console.error('Error creating initial profile:', error);
-        return;
+        console.log("[Initial Load] Current session:", currentSession);
+        const currentUser = currentSession?.user || null;
+        setSession(currentSession);
+        setUser(currentUser);
+        // Fetch profile after getting the initial session
+        await fetchUserProfile(currentUser?.id);
+
+      } catch (error: any) {
+        if (!isMounted) return;
+        logError(error, { 
+          context: 'useAuthState:getSession', 
+          sendToAnalytics: true 
+        });
+        toast.error('Failed to initialize authentication');
+        setProfile(null); // Ensure profile is null on error
+        setIsLoading(false); // Set loading false on error
       }
+    };
 
-      // Fetch the newly created profile to ensure we have all fields
-      const { data: newProfile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+    getCurrentSessionAndProfile();
 
-      // Set the profile in state with casting
-      if (newProfile) {
-        setProfile(newProfile as Profile);
-        console.log('Created initial profile for user');
-      }
-    } catch (error) {
-      console.error('Error creating initial profile:', error);
-    }
-  };
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+      console.log("[Cleanup] Unsubscribed from onAuthStateChange.");
+    };
+  }, [fetchUserProfile]); // Add fetchUserProfile as dependency
 
-  return { user, session, profile, isLoading, setProfile };
+  // Expose setProfile for manual updates if needed elsewhere (e.g., after profile edit form)
+  const updateProfileState = useCallback((newProfile: Profile | null) => {
+    setProfile(newProfile);
+  }, []);
+
+  return { user, session, profile, isLoading, setProfile: updateProfileState };
 };

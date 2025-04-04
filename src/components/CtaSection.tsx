@@ -43,7 +43,7 @@ const CtaSection = () => {
               </Link>
             </Button>
             
-            <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white/10 font-medium text-lg px-8 py-6 rounded-full transform transition-all duration-300 hover:scale-105">
+            <Button asChild size="lg" className="bg-white text-ocean-dark hover:bg-white/90 font-medium text-lg px-8 py-6 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
               <Link to="/about">
                 Learn More
               </Link>

@@ -73,16 +73,17 @@ const getStatusBadgeVariant = (status: Listing['status']): "default" | "secondar
 };
 const formatStatusText = (status: Listing['status']): string => {
   if (!status) return 'Unknown';
+  // Format action types from dialogState as well if needed
+  if (typeof status !== 'string') return 'Unknown Action';
   return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 // Function to fetch listings from Supabase
-// TODO: Join with operators table to get operator_name
+// TODO: Use RPC function to join with operators/profiles table to get operator_name/user_name efficiently.
 const fetchListings = async (): Promise<Listing[]> => {
   const { data, error } = await supabase
     .from('listings')
     .select('id, title, category, status, created_at, description') // Added description
-    // .select('*, operator:operators(business_name)') // Example join - adjust based on FK
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -90,12 +91,11 @@ const fetchListings = async (): Promise<Listing[]> => {
     throw new Error(error.message || 'Failed to fetch listings');
   }
 
-  // Map data to Listing type (handle operator_name if joined)
+  // Map data to Listing type
   return (data || []).map(item => ({
       ...item,
       submitted_at: item.created_at, // Map created_at to submitted_at
-      operator_name: 'Operator Name Placeholder', // Replace with actual joined data if available
-      // operator_name: item.operators?.business_name || 'Unknown Operator', // Example if joined
+      operator_name: 'Operator Name Placeholder', // *** PLACEHOLDER ***
   })) as Listing[]; // Cast needed as select doesn't guarantee all Listing fields
 };
 
@@ -137,9 +137,10 @@ const AdminListingManagement: React.FC = () => {
            throw new Error("No update data provided.");
        }
 
+      // Assert type for local TS check, assuming columns exist in deployed DB
       const { error } = await supabase
         .from('listings')
-        .update(updateData)
+        .update(updateData as Partial<Database['public']['Tables']['listings']['Row']>)
         .eq('id', id);
 
       if (error) {
@@ -225,8 +226,27 @@ const AdminListingManagement: React.FC = () => {
 
       {/* Filters */}
        <div className="flex items-center py-4 gap-2">
-          {/* TODO: Implement Category Filter Dropdown */}
-           <Skeleton className="h-10 w-[180px]" /> {/* Category Filter placeholder */}
+          {/* Category Filter */}
+          <Select
+            value={(isLoading || isError) ? '' : (listingsTable.getColumn('category')?.getFilterValue() as string) ?? 'all'}
+            onValueChange={(value) => listingsTable.getColumn('category')?.setFilterValue(value === 'all' ? '' : value)}
+            disabled={isLoading || isError}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {/* Add likely categories based on project context */}
+              <SelectItem value="Accommodation">Accommodation</SelectItem>
+              <SelectItem value="Activity">Activity</SelectItem>
+              <SelectItem value="Restaurant">Restaurant</SelectItem>
+              <SelectItem value="Watersports">Watersports</SelectItem>
+              <SelectItem value="Transport">Transport</SelectItem>
+              <SelectItem value="Shop">Shop</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
            {/* Status Filter */}
            <Select
              value={(isLoading || isError) ? '' : (listingsTable.getColumn('status')?.getFilterValue() as string) ?? 'all'}
@@ -251,11 +271,7 @@ const AdminListingManagement: React.FC = () => {
       {/* Table */}
       {isLoading ? (
          <div className="space-y-4">
-           {/* Keep skeleton filters for loading state */}
-           <div className="flex items-center py-4 gap-2">
-             <Skeleton className="h-10 w-[180px]" /> {/* Category Filter placeholder */}
-             <Skeleton className="h-10 w-[180px]" /> {/* Status Filter placeholder */}
-           </div>
+           {/* Keep skeleton filters for loading state - No need to repeat filters here */}
            <div className="rounded-md border">
             {/* Simulate table rows */}
             <div className="p-4 border-b"><Skeleton className="h-5 w-full" /></div>

@@ -167,9 +167,10 @@ const ProfileSettings = () => {
       return;
     }
 
+    setIsLoading(true); // Set loading state to true
     try {
       // Convert stay_duration to number or null
-      const stayDurationValue = formState.stay_duration ? 
+      const stayDurationValue = formState.stay_duration ?
         parseInt(formState.stay_duration, 10) : 
         null;
       
@@ -189,6 +190,8 @@ const ProfileSettings = () => {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.message || 'Failed to update profile');
+    } finally {
+      setIsLoading(false); // Set loading state to false regardless of success or error
     }
   };
 

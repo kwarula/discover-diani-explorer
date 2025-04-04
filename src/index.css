@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -136,6 +135,36 @@
   .navbar-scrolled {
     @apply bg-white/80 backdrop-blur-md shadow-md;
   }
+  
+  /* New hover interaction effects */
+  .hover-zoom {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+  
+  .hover-rotate {
+    @apply transition-transform duration-500 hover:rotate-3;
+  }
+  
+  .hover-bright {
+    @apply transition-all duration-300 hover:brightness-110 hover:saturate-150;
+  }
+  
+  /* Card with parallax effect */
+  .parallax-card {
+    @apply relative overflow-hidden rounded-lg;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .parallax-card-content {
+    @apply transition-transform duration-300;
+    transform: translateZ(20px);
+  }
+  
+  /* Enhanced focus effects */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ocean focus:ring-offset-2 transition-all duration-200;
+  }
 }
 
 /* Extended animations */
@@ -166,6 +195,68 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @layer utilities {
   .animate-float {
     animation: float 6s ease-in-out infinite;
@@ -173,5 +264,57 @@
   
   .animate-pulse-gentle {
     animation: pulse-gentle 4s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.8s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.8s ease-out forwards;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.8s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.8s ease-out forwards;
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 10s linear infinite;
+  }
+  
+  /* Animation delays */
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+  
+  .delay-700 {
+    animation-delay: 700ms;
   }
 }

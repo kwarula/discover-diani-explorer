@@ -1,14 +1,56 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Users, Building, List, Clock } from 'lucide-react'; // Icons for KPI cards
 // TODO: Import DateRangePicker when available/implemented
 // TODO: Import Charting library components (e.g., Recharts)
 
-// Placeholder data/state
-const isLoading = false; // Set to true while fetching
+// Fetch functions for simple counts
+const fetchTotalUsers = async () => {
+  const { count, error } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+};
+
+const fetchTotalOperators = async () => {
+  const { count, error } = await supabase
+    .from('operators')
+    .select('*', { count: 'exact', head: true });
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+};
+
+const fetchTotalListings = async () => {
+  const { count, error } = await supabase
+    .from('listings')
+    .select('*', { count: 'exact', head: true });
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+};
+
+const fetchPendingOperators = async () => {
+  const { count, error } = await supabase
+    .from('operators')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending_verification');
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+};
+
 
 const AdminAnalytics: React.FC = () => {
-  // TODO: Implement data fetching for analytics
+  // Fetch data using react-query
+  const { data: totalUsers, isLoading: isLoadingUsers } = useQuery({ queryKey: ['totalUsers'], queryFn: fetchTotalUsers });
+  const { data: totalOperators, isLoading: isLoadingOperators } = useQuery({ queryKey: ['totalOperators'], queryFn: fetchTotalOperators });
+  const { data: totalListings, isLoading: isLoadingListings } = useQuery({ queryKey: ['totalListings'], queryFn: fetchTotalListings });
+  const { data: pendingOperators, isLoading: isLoadingPending } = useQuery({ queryKey: ['pendingOperators'], queryFn: fetchPendingOperators });
+
+  const isLoading = isLoadingUsers || isLoadingOperators || isLoadingListings || isLoadingPending;
+
   // TODO: Implement date range filtering logic
 
   return (
@@ -19,6 +61,49 @@ const AdminAnalytics: React.FC = () => {
         <Skeleton className="h-10 w-full sm:w-64" /> {/* Placeholder for DateRangePicker */}
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+         <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+             <Users className="h-4 w-4 text-muted-foreground" />
+           </CardHeader>
+           <CardContent>
+             {isLoadingUsers ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
+             {/* <p className="text-xs text-muted-foreground">+20.1% from last month</p> */}
+           </CardContent>
+         </Card>
+         <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+             <CardTitle className="text-sm font-medium">Total Operators</CardTitle>
+             <Building className="h-4 w-4 text-muted-foreground" />
+           </CardHeader>
+           <CardContent>
+             {isLoadingOperators ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalOperators}</div>}
+           </CardContent>
+         </Card>
+         <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+             <CardTitle className="text-sm font-medium">Total Listings</CardTitle>
+             <List className="h-4 w-4 text-muted-foreground" />
+           </CardHeader>
+           <CardContent>
+             {isLoadingListings ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalListings}</div>}
+           </CardContent>
+         </Card>
+         <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+             <CardTitle className="text-sm font-medium">Pending Operators</CardTitle>
+             <Clock className="h-4 w-4 text-muted-foreground" />
+           </CardHeader>
+           <CardContent>
+             {isLoadingPending ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{pendingOperators}</div>}
+           </CardContent>
+         </Card>
+      </div>
+
+
+      {/* Chart Placeholders */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Example Chart Card 1 */}
         <Card>

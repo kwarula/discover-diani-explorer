@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Loader, MapPin, Calendar, Clock, DollarSign, Star, MessageCircle, AlertTriangle, Compass, Waves } from 'lucide-react';
@@ -11,21 +10,60 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useListing } from '@/hooks/useListings';
 import { Listing } from '@/types/database';
-import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns'; // Import format from date-fns
 import useReviews from '@/hooks/useReviews';
-import ReviewCard from '@/components/reviews/ReviewCard';
+import ReviewList from '@/components/reviews/ReviewList'; // Import ReviewList
 import { useAuth } from '@/contexts/auth';
-import ReviewForm from '@/components/reviews/ReviewForm';
-import ImageGallery from '@/components/ImageGallery';
+import ReviewForm, { ReviewFormValues } from '@/components/reviews/ReviewForm'; // Import ReviewFormValues type
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel"; // Import Carousel components
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client for submission
+import { toast } from "sonner"; // Import toast for feedback
 
 const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { data: listing, isLoading, error } = useListing(id);
-  const { reviews, loading: reviewsLoading } = useReviews({ listingId: id });
+  const { reviews, loading: reviewsLoading, fetchReviews } = useReviews({ listingId: id }); // Use fetchReviews
   const { user } = useAuth();
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add submission state
+
+  // Handle review submission
+  const handleReviewSubmit = async (values: ReviewFormValues) => {
+    if (!user || !id) return; // Ensure user and id are available
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('reviews').insert([
+        {
+          listing_id: id,
+          user_id: user.id,
+          rating: values.rating,
+          comment: values.comment,
+          used_guide: values.used_guide,
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Review submitted successfully!");
+      setShowReviewForm(false); // Hide form on success
+      fetchReviews(); // Call fetchReviews to refresh
+    } catch (error: any) {
+      console.error("Error submitting review:", error);
+      toast.error(`Failed to submit review: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Calculate average rating
   const averageRating = reviews && reviews.length > 0
@@ -90,14 +128,34 @@ const ListingDetailPage: React.FC = () => {
       <Navigation />
 
       {/* Hero Section with Main Image or Gallery */}
-      <section className="relative pt-20 bg-ocean-light">
+      <section className="relative pt-20 bg-ocean-light pb-8"> {/* Added pb-8 for spacing */}
         <div className="container mx-auto px-4">
           {hasImages ? (
-            <div className="rounded-lg overflow-hidden shadow-lg max-h-[500px]">
-              <ImageGallery images={listing.images} />
-            </div>
+            <Carousel
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full max-w-4xl mx-auto" // Adjust width as needed
+            >
+              <CarouselContent>
+                {listing.images.map((imageUrl, index) => (
+                  <CarouselItem key={index}>
+                    <div className="p-1">
+                      <Card>
+                        <CardContent className="flex aspect-video items-center justify-center p-0 overflow-hidden rounded-lg">
+                           <img src={imageUrl} alt={`${listing.title} image ${index + 1}`} className="object-cover w-full h-full" />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-2" /> {/* Adjust button position */}
+              <CarouselNext className="right-2" /> {/* Adjust button position */}
+            </Carousel>
           ) : (
-            <div className="rounded-lg overflow-hidden shadow-lg bg-gray-200 h-[300px] flex items-center justify-center">
+            <div className="rounded-lg overflow-hidden shadow-lg bg-gray-200 h-[300px] flex items-center justify-center max-w-4xl mx-auto">
               <p className="text-gray-500">No images available</p>
             </div>
           )}
@@ -202,12 +260,16 @@ const ListingDetailPage: React.FC = () => {
                   )}
                 </div>
 
-                {showReviewForm && (
-                  <div className="mb-8">
-                    <ReviewForm 
-                      listingId={id || ''} 
-                      onCancel={() => setShowReviewForm(false)}
+                {showReviewForm && user && ( // Ensure user is logged in to show form
+                  <div className="mb-8 p-6 border rounded-lg bg-gray-50">
+                    <h3 className="text-lg font-semibold mb-4">Write Your Review</h3>
+                    <ReviewForm
+                      listingId={id}
+                      userId={user.id} // Pass user ID
+                      onSubmit={handleReviewSubmit} // Pass submit handler
+                      isSubmitting={isSubmitting} // Pass submission state
                     />
+                    <Button variant="ghost" size="sm" onClick={() => setShowReviewForm(false)} className="mt-2 text-sm text-gray-600">Cancel</Button>
                   </div>
                 )}
 
@@ -216,20 +278,12 @@ const ListingDetailPage: React.FC = () => {
                     <Skeleton className="h-[120px] w-full" />
                     <Skeleton className="h-[120px] w-full" />
                   </div>
-                ) : reviews && reviews.length > 0 ? (
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
-                  </div>
                 ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No reviews yet. Be the first to share your experience!</p>
-                  </div>
+                  // Use ReviewList component directly, pass reviews only if not null/undefined
+                  <ReviewList reviews={reviews || []} isLoading={reviewsLoading} />
                 )}
-              </div>
-            </div>
+              </div> {/* End Reviews Section div */}
+            </div> {/* End Left Column div */}
 
             {/* Right Column - Sidebar */}
             <div>
@@ -299,9 +353,9 @@ const ListingDetailPage: React.FC = () => {
 
                   {/* Listing Metadata */}
                   <div className="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-500">
-                    <p>Listed: {formatDate(listing.created_at)}</p>
+                    <p>Listed: {format(new Date(listing.created_at), 'PPP')}</p>
                     {listing.updated_at !== listing.created_at && (
-                      <p>Last updated: {formatDate(listing.updated_at)}</p>
+                      <p>Last updated: {format(new Date(listing.updated_at), 'PPP')}</p>
                     )}
                   </div>
                 </CardContent>

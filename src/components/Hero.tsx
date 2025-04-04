@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import { HeroSearch } from "@/components/search";
 
 const Hero = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -28,7 +29,7 @@ const Hero = () => {
         <div className="relative w-full h-full overflow-hidden">
           <iframe 
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] min-w-[100%] min-h-[100%] object-cover"
-            src="https://www.youtube.com/embed/tDkyN-TnXJI?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=P3KfAE_glBE"
+            src="https://www.youtube.com/embed/tDkyN-TnXJI?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=tDkyN-TnXJI"
             title="Diani Beach Video"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -56,11 +57,11 @@ const Hero = () => {
           Discover <span className="text-coral-light">Diani</span> Beach
         </h1>
         
-        <p className="text-xl md:text-2xl max-w-2xl mx-auto mb-10 animate-slide-down font-light" style={{ animationDelay: '0.2s' }}>
+        <p className="text-xl md:text-2xl max-w-3xl mx-auto mb-10 animate-slide-down font-light" style={{ animationDelay: '0.2s' }}>
           Your personal guide to Kenya's most beautiful coastal paradise
         </p>
         
-        <div className="flex flex-col sm:flex-row justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+        <div className="flex flex-col sm:flex-row justify-center gap-4 animate-slide-up mb-8" style={{ animationDelay: '0.4s' }}>
           <Button asChild size="lg" className="bg-gradient-to-r from-coral to-coral-dark hover:from-coral-dark hover:to-coral text-white font-medium text-lg transition-all duration-300 transform hover:scale-105">
             <Link to="/register">
               Get Started
@@ -68,11 +69,16 @@ const Hero = () => {
             </Link>
           </Button>
           
-          <Button asChild variant="outline" size="lg" className="glass-card backdrop-blur-md text-white font-medium text-lg border-white/30 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+          <Button asChild size="lg" className="bg-white text-ocean-dark hover:bg-white/90 font-medium text-lg transition-all duration-300 transform hover:scale-105">
             <Link to="/explore">
               Explore Diani
             </Link>
           </Button>
+        </div>
+        
+        {/* Add the new search component */}
+        <div className="mt-8 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+          <HeroSearch />
         </div>
       </div>
       

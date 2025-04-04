@@ -8,6 +8,8 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Blog from "./pages/Blog";
@@ -24,6 +26,7 @@ import Transportation from "./pages/Transportation";
 import ListingDetailPage from "./pages/ListingDetailPage";
 import OperatorDetailPage from "./pages/OperatorDetailPage";
 import PoiDetailPage from "./pages/PoiDetailPage";
+import AuthCallback from "./pages/AuthCallback";
 
 // Import operator pages
 import OperatorLanding from "./pages/OperatorLanding";
@@ -40,9 +43,31 @@ import AdminListingManagement from "./components/admin/listings/AdminListingMana
 import AdminUserManagement from "./components/admin/users/AdminUserManagement";
 import AdminContentModeration from "./components/admin/moderation/AdminContentModeration";
 import AdminAnalytics from "./components/admin/analytics/AdminAnalytics";
+import AdminRouteGuard from "./components/admin/layout/AdminRouteGuard"; // Import the new guard
+import AdminPOIManagement from "./components/admin/poi/AdminPOIManagement"; // Import POI component
 // TODO: Import other admin section components (Settings, etc.) when created
 
-const queryClient = new QueryClient();
+// Configure React Query with better defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Don't retry on 404s or other client errors
+        if (error instanceof Error && error.message.includes('404')) {
+          return false;
+        }
+        // Retry network errors up to 3 times
+        if (failureCount < 3) {
+          return true;
+        }
+        return false;
+      },
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
+      staleTime: 60 * 1000, // 1 minute default stale time
+      refetchOnWindowFocus: false, // Disable automatic refetch on window focus
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -56,6 +81,12 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Auth callback route for OAuth and email confirmation */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            
             <Route path="/dashboard" element={
               <AuthRequired>
                 <Dashboard />
@@ -77,7 +108,7 @@ const App = () => (
             <Route path="/weather-forecast" element={<WeatherForecast />} />
             <Route path="/local-customs" element={<LocalCustoms />} />
             <Route path="/transportation" element={<Transportation />} />
-            
+
             {/* Detail Page Routes */}
             <Route path="/listing/:id" element={<ListingDetailPage />} />
             <Route path="/operator/:id" element={<OperatorDetailPage />} />
@@ -86,38 +117,35 @@ const App = () => (
             {/* Operator Flow Routes */}
             <Route path="/operator/welcome" element={<OperatorLanding />} />
             <Route path="/operator/auth" element={<OperatorAuth />} />
-            {/* Wrap onboarding, confirmation, and dashboard in AuthRequired */}
             <Route path="/operator/onboarding" element={
               <AuthRequired>
                 <OperatorOnboarding />
               </AuthRequired>
             } />
-             <Route path="/operator/submission-confirmation" element={
+            <Route path="/operator/submission-confirmation" element={
               <AuthRequired>
                 <OperatorSubmissionConfirmation />
               </AuthRequired>
             } />
-             <Route path="/operator/dashboard" element={
+            <Route path="/operator/dashboard" element={
               <AuthRequired>
                 <OperatorDashboardWrapper />
               </AuthRequired>
             } />
 
-            {/* Admin Routes */}
-            {/* TODO: Add proper role-based auth check */}
-            <Route path="/admin" element={
-              <AuthRequired> {/* Basic auth check, needs role check */}
-                <AdminDashboardPage />
-              </AuthRequired>
-            }>
-              <Route index element={<AdminOverview />} />
-              <Route path="operators" element={<AdminOperatorManagement />} />
-              <Route path="listings" element={<AdminListingManagement />} />
-              <Route path="users" element={<AdminUserManagement />} />
-              <Route path="moderation" element={<AdminContentModeration />} />
-              <Route path="analytics" element={<AdminAnalytics />} />
-              {/* TODO: Add routes for other admin sections here */}
-              {/* <Route path="settings" element={<AdminSettings />} /> */}
+            {/* Admin routes */}
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />}>
+              <Route element={<AdminRouteGuard />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="operators" element={<AdminOperatorManagement />} />
+                <Route path="listings" element={<AdminListingManagement />} />
+                <Route path="users" element={<AdminUserManagement />} />
+                <Route path="moderation" element={<AdminContentModeration />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="points-of-interest" element={<AdminPOIManagement />} />
+                {/* Add other admin routes when components are ready */}
+              </Route>
             </Route>
 
             <Route path="*" element={<NotFound />} />

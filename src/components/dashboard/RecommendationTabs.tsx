@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate, Link } from 'react-router-dom'; // Import useNavigate and Link
 import { Compass, Coffee, Hotel } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -24,10 +25,11 @@ const RecommendationTabs = ({
   diningLoading,
   accommodationLoading,
 }: RecommendationTabsProps) => {
-  // Handler for card selection
+  const navigate = useNavigate(); // Initialize navigate
+
+  // Handler for card selection - navigate to listing detail page
   const handleCardSelect = (id: string) => {
-    console.log(`Selected listing with ID: ${id}`);
-    // Implement navigation or detail view logic here
+    navigate(`/listing/${id}`);
   };
 
   return (
@@ -74,11 +76,11 @@ const RecommendationTabs = ({
               </div>
             )}
           </div>
-          {/* Only show View All if there are activities */}
+          {/* Only show View All if there are activities, and link it */}
           {activities && activities.length > 0 && (
             <div className="mt-6 text-center">
-              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-                View All Activities
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white" asChild>
+                <Link to="/activities">View All Activities</Link>
               </Button>
             </div>
           )}
@@ -107,11 +109,11 @@ const RecommendationTabs = ({
               </div>
             )}
           </div>
-          {/* Only show View All if there are dining options */}
+          {/* Only show View All if there are dining options, and link it */}
           {dining && dining.length > 0 && (
             <div className="mt-6 text-center">
-              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-                View All Restaurants
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white" asChild>
+                <Link to="/market">View All Restaurants</Link>
               </Button>
             </div>
           )}
@@ -140,11 +142,11 @@ const RecommendationTabs = ({
               </div>
             )}
           </div>
-          {/* Only show View All if there are accommodations */}
+          {/* Only show View All if there are accommodations, and link it */}
           {accommodation && accommodation.length > 0 && (
             <div className="mt-6 text-center">
-              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white">
-                View All Accommodations
+              <Button variant="outline" className="border-ocean text-ocean hover:bg-ocean hover:text-white" asChild>
+                <Link to="/explore">View All Accommodations</Link>
               </Button>
             </div>
           )}

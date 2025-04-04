@@ -1,7 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Listing } from '@/types/database'; // Import Listing type directly
+import { logError } from '@/utils/errorLogger';
 
 // Define the columns to select for listings
 const listingColumns = `
@@ -14,6 +14,12 @@ const listingColumns = `
 // Function to fetch listings with optional pagination and category filtering
 export const useListings = (category: string | null = null, limit: number = 10, page: number = 1) => {
   const fetchListings = async () => {
+    // Create a timeout mechanism
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 10000); // 10 second timeout
+
     try {
       let query = supabase
         .from('listings')
@@ -32,14 +38,52 @@ export const useListings = (category: string | null = null, limit: number = 10, 
         .range(from, to)
         .eq('status', 'approved');
       
+      clearTimeout(timeoutId);
+      
+      if (controller.signal.aborted) {
+        throw new Error("Request timed out");
+      }
+      
       if (error) {
         throw error;
       }
 
       // Re-adding assertion as type inference is unreliable here
       return data as Listing[]; // Assert type
-    } catch (error) {
-      console.error('Error fetching listings:', error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logError(error, { 
+        context: 'useListings:fetchListings', 
+        data: { category, limit, page } 
+      });
+      
+      // Provide fallback data in development
+      if (import.meta.env.DEV) {
+        console.warn('Using fallback listings data in development mode');
+        return [
+          {
+            id: 'fallback-1',
+            title: 'Diani Beach Tour',
+            category: 'activity',
+            description: 'Explore the beautiful Diani Beach',
+            price_range: 'medium',
+            featured: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as Listing,
+          {
+            id: 'fallback-2',
+            title: 'Seafood Restaurant',
+            category: 'service',
+            description: 'Fresh seafood daily',
+            price_range: 'medium',
+            featured: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as Listing
+        ].slice(0, limit);
+      }
+      
       throw error;
     }
   };
@@ -48,6 +92,8 @@ export const useListings = (category: string | null = null, limit: number = 10, 
     queryKey: ['listings', category, limit, page],
     queryFn: fetchListings,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2, // Retry failed requests twice
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 };
 
@@ -55,6 +101,12 @@ export const useListings = (category: string | null = null, limit: number = 10, 
 export const useListing = (id: string | undefined) => {
   const fetchListing = async () => {
     if (!id) return null;
+    
+    // Create a timeout mechanism
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 10000); // 10 second timeout
     
     try {
       // Select listing columns and potentially nested reviews
@@ -64,14 +116,41 @@ export const useListing = (id: string | undefined) => {
         .eq('id', id)
         .single();
 
+      clearTimeout(timeoutId);
+      
+      if (controller.signal.aborted) {
+        throw new Error("Request timed out");
+      }
+      
       if (error) {
         throw error;
       }
 
       // Assert type with reviews
       return data as Listing & { reviews: any[] }; 
-    } catch (error) {
-      console.error('Error fetching listing:', error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      logError(error, { 
+        context: 'useListings:fetchListing', 
+        data: { id } 
+      });
+      
+      // Provide fallback data in development
+      if (import.meta.env.DEV && id === 'fallback-1') {
+        console.warn('Using fallback listing data in development mode');
+        return {
+          id: 'fallback-1',
+          title: 'Diani Beach Tour',
+          category: 'activity',
+          description: 'Explore the beautiful Diani Beach with our experienced guide.',
+          price_range: 'medium',
+          featured: true,
+          reviews: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as Listing & { reviews: any[] };
+      }
+      
       throw error;
     }
   };
@@ -81,5 +160,7 @@ export const useListing = (id: string | undefined) => {
     queryFn: fetchListing,
     enabled: !!id, // Only run the query if we have an ID
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 };

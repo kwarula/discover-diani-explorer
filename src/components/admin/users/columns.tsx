@@ -5,7 +5,7 @@ import { MoreHorizontal, ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge"; // Reverted: Removed Badge import
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { User } from "./types"; // Import User type from types.ts (will create next)
+// Reverted: Use TempUser type consistent with AdminUserManagement
+// import type { User } from "./types";
+type TempUser = {
+  id: string;
+  full_name: string | null;
+  email: string | null; // Still placeholder
+  created_at: string;
+};
+
 
 // Helper function to format date (can be moved to utils)
 const formatDate = (dateString: string) => {
@@ -30,37 +38,16 @@ const formatDate = (dateString: string) => {
   }
 };
 
-// Helper function to determine badge variant based on user status/role
-const getRoleBadgeVariant = (role: User['role']): "default" | "secondary" | "destructive" | "outline" => {
-  switch (role?.toLowerCase()) {
-    case 'admin':
-      return 'destructive'; // Highlight admin role
-    case 'operator':
-      return 'default';
-    case 'local':
-      return 'secondary';
-    case 'tourist':
-    default:
-      return 'outline';
-  }
-};
-
-const getStatusBadgeVariant = (status: User['status']): "default" | "destructive" | "outline" => {
-   switch (status?.toLowerCase()) {
-    case 'active':
-      return 'default';
-    case 'suspended':
-      return 'destructive';
-    default:
-      return 'outline';
-  }
-};
+// Reverted: Removed badge helper functions
+// const getRoleBadgeVariant = ...
+// const getStatusBadgeVariant = ...
 
 // Modify columns to accept action handler functions
+// Reverted: Changed User type to TempUser and removed role/status actions
 export const columns = (
-    openConfirmationDialog: (user: User, action: 'suspend' | 'reactivate' | 'delete' | 'editRole') => void,
-    openViewProfile: (user: User) => void
-): ColumnDef<User>[] => [
+    openConfirmationDialog: (user: TempUser, action: 'delete') => void,
+    openViewProfile: (user: TempUser) => void
+): ColumnDef<TempUser>[] => [
   // 1. Select Checkbox
   {
     id: "select",
@@ -120,49 +107,27 @@ export const columns = (
     cell: ({ row }) => <div>{row.getValue("email") || 'N/A'}</div>,
   },
 
-  // 4. Role
+  // Reverted: Removed Role Column
+  /*
   {
     accessorKey: "role",
-    header: ({ column }) => (
-       <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Role
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-       const role = row.getValue("role") as User['role'];
-       return <Badge variant={getRoleBadgeVariant(role)}>{role || 'Unknown'}</Badge>;
-    },
-     filterFn: (row, id, value) => {
-        return value.length === 0 || value.includes(row.getValue(id));
-    },
+    header: ({ column }) => ( ... ),
+    cell: ({ row }) => { ... },
+    filterFn: (row, id, value) => { ... },
   },
+  */
 
-  // 5. Status
+  // Reverted: Removed Status Column
+  /*
   {
     accessorKey: "status",
-     header: ({ column }) => (
-       <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Status
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-    cell: ({ row }) => {
-       const status = row.getValue("status") as User['status'];
-       return <Badge variant={getStatusBadgeVariant(status)}>{status || 'Unknown'}</Badge>;
-    },
-     filterFn: (row, id, value) => {
-        return value.length === 0 || value.includes(row.getValue(id));
-    },
+     header: ({ column }) => ( ... ),
+    cell: ({ row }) => { ... },
+     filterFn: (row, id, value) => { ... },
   },
+  */
 
-  // 6. Date Joined
+  // 4. Date Joined (was 6)
   {
     accessorKey: "created_at",
     header: ({ column }) => (
@@ -177,7 +142,7 @@ export const columns = (
     cell: ({ row }) => <div>{formatDate(row.getValue("created_at"))}</div>,
   },
 
-  // 7. Actions
+  // 5. Actions (was 7)
   {
     id: "actions",
     cell: ({ row }) => {
@@ -185,9 +150,10 @@ export const columns = (
 
       // Use passed-in handlers
       const handleViewProfile = () => openViewProfile(user);
-      const handleEditRole = () => openConfirmationDialog(user, 'editRole');
-      const handleSuspend = () => openConfirmationDialog(user, 'suspend');
-      const handleReactivate = () => openConfirmationDialog(user, 'reactivate');
+      // Reverted: Removed role/status action handlers
+      // const handleEditRole = () => openConfirmationDialog(user, 'editRole');
+      // const handleSuspend = () => openConfirmationDialog(user, 'suspend');
+      // const handleReactivate = () => openConfirmationDialog(user, 'reactivate');
       const handleDelete = () => openConfirmationDialog(user, 'delete');
 
 
@@ -204,14 +170,14 @@ export const columns = (
             <DropdownMenuItem onClick={handleViewProfile}>
               View Profile
             </DropdownMenuItem>
-             {/* Prevent Admin from editing own role or being suspended/deleted */}
-            {user.role?.toLowerCase() !== 'admin' && (
+            {/* Reverted: Removed role/status actions from menu */}
+            {/* {user.role?.toLowerCase() !== 'admin' && ( */}
               <>
-                <DropdownMenuItem onClick={handleEditRole}>
+                {/* <DropdownMenuItem onClick={handleEditRole}>
                   Edit Role
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
-                {user.status === 'Active' ? (
+                {/* {user.status === 'Active' ? (
                   <DropdownMenuItem onClick={handleSuspend} className="text-orange-600 focus:text-orange-700 focus:bg-orange-50">
                     Suspend User
                   </DropdownMenuItem>
@@ -219,12 +185,12 @@ export const columns = (
                   <DropdownMenuItem onClick={handleReactivate} className="text-blue-600 focus:text-blue-700 focus:bg-blue-50">
                     Reactivate User
                   </DropdownMenuItem>
-                )}
+                )} */}
                 <DropdownMenuItem onClick={handleDelete} className="text-red-600 focus:text-red-700 focus:bg-red-50">
-                  Delete User
+                  Delete User (Placeholder)
                 </DropdownMenuItem>
               </>
-            )}
+            {/* )} */}
           </DropdownMenuContent>
         </DropdownMenu>
       );

@@ -9,6 +9,7 @@ import {
   BarChart,
   Settings,
   LogOut,
+  MapPin, // Import MapPin icon for POI
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/admin/listings', label: 'Listings', icon: Building },
   { to: '/admin/users', label: 'Users', icon: User },
   { to: '/admin/moderation', label: 'Moderation', icon: ShieldAlert },
+  { to: '/admin/poi', label: 'Points of Interest', icon: MapPin }, // Add POI nav item
   { to: '/admin/analytics', label: 'Analytics', icon: BarChart },
   // { to: '/admin/settings', label: 'Settings', icon: Settings }, // Optional
 ];

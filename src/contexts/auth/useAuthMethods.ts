@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database'; 
@@ -25,7 +24,20 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       toast.success('Successfully signed in');
       return data;
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while signing in');
+      // Enhanced error handling with more specific messages
+      let errorMessage = 'An error occurred while signing in';
+      
+      if (error.message) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please verify your email before signing in';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsSigningIn(false);
@@ -52,11 +64,11 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         password,
         options: {
           data: {
-            // Store username and full_name in auth.users metadata if desired
-            // This can be useful for quick access without joining profiles table initially
             username: userData.username,
             full_name: userData.full_name,
           },
+          // Set email confirmation based on environment
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -69,10 +81,28 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         await createUserProfile(data.user.id, userData);
       }
 
-      toast.success('Account created successfully. You are now signed in.');
+      if (data?.user?.identities?.length === 0) {
+        toast.error('The email address is already registered. Please sign in instead.');
+      } else {
+        toast.success('Account created successfully. Please check your email for verification.');
+      }
+      
       return data;
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred while creating your account');
+      // Enhanced error handling with more specific messages
+      let errorMessage = 'An error occurred while creating your account';
+      
+      if (error.message) {
+        if (error.message.includes('already registered')) {
+          errorMessage = 'This email is already registered';
+        } else if (error.message.includes('password')) {
+          errorMessage = error.message; // Keep password-specific errors
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsSigningUp(false);
@@ -105,11 +135,14 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         throw new Error('Profile ID is required for updates');
       }
       
+      // Prevent users from changing their role or status through this method
+      const { role, status, ...safeProfileData } = profileData;
+      
       // Update the profile in the database
       const { error } = await supabase
         .from('profiles')
-        .update(profileData)
-        .eq('id', profileData.id);
+        .update(safeProfileData)
+        .eq('id', safeProfileData.id);
 
       if (error) {
         throw error;
@@ -119,7 +152,7 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
       const { data: updatedProfile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', profileData.id)
+        .eq('id', safeProfileData.id)
         .single();
 
       // Update the profile state with the updated profile
@@ -137,12 +170,10 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
 
   const signInWithProvider = async (provider: Provider) => {
     try {
-      // No need for loading state here as Supabase handles the redirect flow
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Redirect back to the dashboard after successful OAuth flow
-          redirectTo: `${window.location.origin}/dashboard`, 
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -179,7 +210,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         dietary_preferences: userData.dietary_preferences || null,
         is_tourist: userData.is_tourist !== undefined ? userData.is_tourist : true,
         bio: userData.bio || null,
-        avatar_url: userData.avatar_url || null
+        avatar_url: userData.avatar_url || null,
+        role: 'user' as const, // Default role is 'user'
+        status: 'active' as const, // Default status is 'active'
       };
 
       const { error } = await supabase
@@ -187,10 +220,19 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         .insert(profileData);
 
       if (error) {
-        console.error('Supabase insert error:', error); 
-        throw error; 
+        console.error('Supabase insert error:', error);
+        
+        // Provide more specific error messages
+        if (error.code === '23505') { // Unique violation
+          console.warn('Profile already exists for this user, skipping creation');
+          return; // Not throwing, as this might be a retry scenario
+        } else if (error.code === '23503') { // Foreign key violation
+          throw new Error('Authentication error: User does not exist in auth system');
+        } else {
+          throw error;
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user profile:', error);
       throw error;
     }

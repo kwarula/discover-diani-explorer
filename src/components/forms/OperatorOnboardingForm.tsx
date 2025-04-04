@@ -91,6 +91,56 @@ const TOTAL_STEPS = 5;
 const MAP_CONTAINER_STYLE = { height: '400px', width: '100%' }; // Style for map container
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Access directly with fallback
 
+// Add this function before the OperatorOnboardingForm component
+/**
+ * Ensures required storage buckets exist
+ */
+async function ensureStorageBuckets() {
+  const requiredBuckets = [
+    'operator_logos',
+    'operator_covers',
+    'operator_gallery',
+    'operator_verification_docs'
+  ];
+  
+  try {
+    // List existing buckets
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error("Error listing buckets:", listError);
+      return; // Continue anyway, might be permission issue
+    }
+    
+    const existingBuckets = buckets?.map(b => b.name) || [];
+    
+    // Create missing buckets
+    for (const bucket of requiredBuckets) {
+      if (!existingBuckets.includes(bucket)) {
+        console.log(`Creating missing bucket: ${bucket}`);
+        try {
+          const { error } = await supabase.storage.createBucket(bucket, {
+            public: true, // Make bucket publicly accessible
+            fileSizeLimit: 10485760, // 10MB limit
+          });
+          
+          if (error) {
+            console.error(`Failed to create bucket ${bucket}:`, error);
+          } else {
+            console.log(`Successfully created bucket: ${bucket}`);
+          }
+        } catch (err) {
+          console.error(`Error creating bucket ${bucket}:`, err);
+        }
+      } else {
+        console.log(`Bucket exists: ${bucket}`);
+      }
+    }
+  } catch (err) {
+    console.error("Error ensuring storage buckets:", err);
+  }
+}
+
 const OperatorOnboardingForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,6 +177,15 @@ const OperatorOnboardingForm: React.FC = () => {
     },
   });
 
+  // Add effect to check buckets when form loads
+  React.useEffect(() => {
+    // Check that storage buckets exist - this requires storage admin rights
+    // Only attempt this if user is admin, or as a one-time setup
+    if (user?.email === 'admin@example.com') { // Replace with your admin email
+      ensureStorageBuckets();
+    }
+  }, [user]);
+
   // --- Map Marker Drag Handler ---
   const onMarkerDragEnd = useCallback((event: google.maps.MapMouseEvent) => {
     if (event.latLng) {
@@ -150,6 +209,39 @@ const OperatorOnboardingForm: React.FC = () => {
     console.log("Submitting Onboarding Data:", values);
 
     try {
+      // First, check which buckets actually exist - we may not have admin rights,
+      // but we can at least warn the user about potential issues
+      let bucketsStatus: Record<string, boolean> = {};
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketNames = buckets?.map(b => b.name) || [];
+        
+        bucketsStatus = {
+          operator_logos: bucketNames.includes('operator_logos'),
+          operator_covers: bucketNames.includes('operator_covers'),
+          operator_gallery: bucketNames.includes('operator_gallery'),
+          operator_verification_docs: bucketNames.includes('operator_verification_docs')
+        };
+        
+        console.log("Storage buckets status:", bucketsStatus);
+        
+        // If any required bucket is missing, show warning
+        const missingBuckets = Object.entries(bucketsStatus)
+          .filter(([_, exists]) => !exists)
+          .map(([name]) => name);
+          
+        if (missingBuckets.length > 0) {
+          console.warn("Missing storage buckets:", missingBuckets);
+          toast({
+            title: "Storage Setup Issue",
+            description: "Some storage areas are not configured. File uploads may fail.",
+            variant: "destructive"
+          });
+        }
+      } catch (bucketError) {
+        console.error("Error checking buckets:", bucketError);
+      }
+      
       let logoUrl: string | undefined = undefined;
       let coverPhotoUrl: string | undefined = undefined;
       const galleryUrls: string[] = [];
@@ -190,18 +282,86 @@ const OperatorOnboardingForm: React.FC = () => {
        };
 
       // --- Upload Files ---
+      console.log("Starting file uploads...");
+      console.log("Logo files:", values.logo);
+      console.log("Cover photo files:", values.coverPhoto);
+      console.log("Business permit files:", values.businessPermit);
+      console.log("KRA PIN files:", values.kraPin);
+      console.log("Tourism license files:", values.tourismLicense);
+
+      // Upload logo if available
+      if (values.logo && values.logo.length > 0) {
       logoUrl = await uploadSingleFile(values.logo, 'operator_logos', 'logo');
+        console.log("Logo uploaded successfully:", logoUrl);
+      }
+
+      // Upload cover photo if available
+      if (values.coverPhoto && values.coverPhoto.length > 0) {
       coverPhotoUrl = await uploadSingleFile(values.coverPhoto, 'operator_covers', 'cover');
+        console.log("Cover photo uploaded successfully:", coverPhotoUrl);
+      }
+
+      // Upload gallery if available
+      if (values.gallery && values.gallery.length > 0) {
       const uploadedGalleryUrls = await uploadMultipleFiles(values.gallery, 'operator_gallery', 'gallery');
       galleryUrls.push(...uploadedGalleryUrls);
+        console.log("Gallery images uploaded successfully:", galleryUrls);
+      }
 
-      // Upload documents
+      // Upload documents with better error handling
+      console.log("Starting document uploads...");
+      try {
+        if (values.businessPermit && values.businessPermit.length > 0) {
       const permitUrl = await uploadSingleFile(values.businessPermit, 'operator_verification_docs', 'permit');
-      if (permitUrl) documentUrls.push({ type: 'Business Permit', url: permitUrl });
+          if (permitUrl) {
+            documentUrls.push({ type: 'Business Permit', url: permitUrl });
+            console.log("Business permit uploaded successfully:", permitUrl);
+          }
+        }
+      } catch (permitError) {
+        console.error("Error uploading business permit:", permitError);
+        toast({ 
+          title: "Business Permit Upload Failed", 
+          description: "We couldn't upload your business permit, but will continue with other documents.", 
+          variant: "destructive" 
+        });
+      }
+
+      try {
+        if (values.tourismLicense && values.tourismLicense.length > 0) {
       const licenseUrl = await uploadSingleFile(values.tourismLicense, 'operator_verification_docs', 'license');
-      if (licenseUrl) documentUrls.push({ type: 'Tourism License', url: licenseUrl });
+          if (licenseUrl) {
+            documentUrls.push({ type: 'Tourism License', url: licenseUrl });
+            console.log("Tourism license uploaded successfully:", licenseUrl);
+          }
+        }
+      } catch (licenseError) {
+        console.error("Error uploading tourism license:", licenseError);
+        toast({ 
+          title: "Tourism License Upload Failed", 
+          description: "We couldn't upload your tourism license, but will continue with other documents.", 
+          variant: "destructive" 
+        });
+      }
+
+      try {
+        if (values.kraPin && values.kraPin.length > 0) {
       const kraUrl = await uploadSingleFile(values.kraPin, 'operator_verification_docs', 'kra');
-      if (kraUrl) documentUrls.push({ type: 'KRA PIN', url: kraUrl });
+          if (kraUrl) {
+            documentUrls.push({ type: 'KRA PIN', url: kraUrl });
+            console.log("KRA PIN uploaded successfully:", kraUrl);
+          }
+        }
+      } catch (kraError) {
+        console.error("Error uploading KRA PIN:", kraError);
+        toast({ 
+          title: "KRA PIN Upload Failed", 
+          description: "We couldn't upload your KRA PIN, but will continue with submission.", 
+          variant: "destructive" 
+        });
+      }
+
+      console.log("All file uploads completed. Document URLs:", documentUrls);
 
       // --- Prepare Operator Data ---
       const operatorData = {
@@ -476,38 +636,138 @@ const OperatorOnboardingForm: React.FC = () => {
                <div className="space-y-4">
                  <h3 className="text-lg font-medium">Verification Documents</h3>
                  <p className="text-sm text-gray-600">To ensure trust and safety, please upload the following documents. They are stored securely and used only for verification.</p>
-                 {/* Document Upload Placeholders */}
-                 <FormItem> <FormLabel>Business Permit</FormLabel><FormControl><Input type="file" accept=".pdf,.jpg,.jpeg,.png" /></FormControl><FormMessage /> </FormItem>
-                 <FormItem> <FormLabel>KRA PIN Certificate</FormLabel><FormControl><Input type="file" accept=".pdf,.jpg,.jpeg,.png" /></FormControl><FormMessage /> </FormItem>
-                 <FormItem> <FormLabel>Tourism License (if applicable)</FormLabel><FormControl><Input type="file" accept=".pdf,.jpg,.jpeg,.png" /></FormControl><FormMessage /> </FormItem>
-                 {/* Add more based on logic */}
+                
+                {/* Business Permit Document Upload */}
+                <FormField
+                  control={form.control}
+                  name="businessPermit"
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <FormItem>
+                      <FormLabel>Business Permit</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="file" 
+                          accept=".pdf,.jpg,.jpeg,.png" 
+                          onChange={(e) => {
+                            console.log("Business permit file selected:", e.target.files);
+                            onChange(e.target.files);
+                          }}
+                          {...rest}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* KRA PIN Certificate */}
+                <FormField
+                  control={form.control}
+                  name="kraPin"
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <FormItem>
+                      <FormLabel>KRA PIN Certificate</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="file" 
+                          accept=".pdf,.jpg,.jpeg,.png" 
+                          onChange={(e) => {
+                            console.log("KRA PIN file selected:", e.target.files);
+                            onChange(e.target.files);
+                          }}
+                          {...rest}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Tourism License */}
+                <FormField
+                  control={form.control}
+                  name="tourismLicense"
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <FormItem>
+                      <FormLabel>Tourism License (if applicable)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="file" 
+                          accept=".pdf,.jpg,.jpeg,.png" 
+                          onChange={(e) => {
+                            console.log("Tourism license file selected:", e.target.files);
+                            onChange(e.target.files);
+                          }}
+                          {...rest}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                  {/* Terms Agreement */}
-                 <FormField control={form.control} name="agreeToTerms" render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow mt-6">
+                <FormField
+                  control={form.control}
+                  name="agreeToTerms"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 my-6">
                       <FormControl>
-                         <input type="checkbox" checked={field.value} onChange={field.onChange} className="form-checkbox h-5 w-5 text-coral rounded border-gray-300 focus:ring-coral" />
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>Agree to Terms</FormLabel>
                         <FormDescription>
-                          I agree to the Discover Diani <a href="/operator-terms" target="_blank" className="text-coral hover:underline">Operator Terms of Service</a>.
+                          I agree to the Discover Diani <a href="/terms" target="_blank" className="text-blue-600 underline">Operator Terms of Service</a>.
                         </FormDescription>
-                         <FormMessage /> {/* Display validation message here */}
+                        <FormMessage />
                       </div>
                     </FormItem>
-                  )} />
+                  )}
+                />
                </div>
              )}
 
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={handlePrevious} disabled={currentStep === 1}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 1 || isSubmitting}
+            >
               Previous
             </Button>
+            
+            {currentStep < TOTAL_STEPS ? (
             <Button type="button" onClick={handleNext} disabled={isSubmitting}>
-              {currentStep === TOTAL_STEPS ? (isSubmitting ? 'Submitting...' : 'Submit for Verification') : 'Next'}
+                Next
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={form.handleSubmit(processForm)}
+                disabled={isSubmitting}
+                className="min-w-[120px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit"
+                )}
             </Button>
+            )}
           </CardFooter>
         </form>
       </Form>

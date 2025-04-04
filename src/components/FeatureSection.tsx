@@ -9,50 +9,47 @@ const features = [
     description: "Get tailored suggestions based on your preferences and interests.",
     icon: Compass,
     color: "text-ocean",
-    bgColor: "bg-ocean/10",
-    large: true
+    bgColor: "bg-ocean/10"
   },
   {
     title: "Interactive Maps",
     description: "Navigate easily with detailed maps highlighting the best spots in Diani.",
     icon: MapPin,
     color: "text-coral",
-    bgColor: "bg-coral/10",
-    large: false
+    bgColor: "bg-coral/10"
   },
   {
     title: "Events Calendar",
     description: "Stay updated with local events, festivals, and activities happening during your stay.",
     icon: Calendar,
     color: "text-palm",
-    bgColor: "bg-palm/10",
-    large: false
+    bgColor: "bg-palm/10"
   },
   {
     title: "Dining Guide",
     description: "Discover the best restaurants and cafes that match your dietary preferences.",
     icon: Utensils,
     color: "text-ocean-dark",
-    bgColor: "bg-ocean-dark/10",
-    large: false
+    bgColor: "bg-ocean-dark/10"
   },
   {
     title: "Beach Activities",
     description: "Find the perfect water sports and beach activities for your adventure level.",
     icon: Waves,
     color: "text-sand-dark",
-    bgColor: "bg-sand-dark/10",
-    large: true
+    bgColor: "bg-sand-dark/10"
   },
   {
     title: "Local Experiences",
     description: "Connect with authentic cultural experiences and community-based tourism.",
     icon: Users,
     color: "text-coral-dark",
-    bgColor: "bg-coral-dark/10",
-    large: false
+    bgColor: "bg-coral-dark/10"
   }
 ];
+
+// Import cn from lib/utils instead of defining locally
+import { cn } from "@/lib/utils";
 
 const FeatureSection = () => {
   return (
@@ -67,23 +64,24 @@ const FeatureSection = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Updated Grid Layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <Card 
               key={index} 
-              className={cn(
-                "border-none hover-lift overflow-hidden glass-card",
-                feature.large ? "md:col-span-8" : "md:col-span-4"
-              )}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" // Added flex flex-col
             >
-              <CardHeader className="pb-2">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${feature.color} ${feature.bgColor} mb-6`}>
-                  <feature.icon size={32} />
+              {/* Adjusted Padding and Structure */}
+              <CardContent className="p-6 flex-grow flex flex-col items-start"> 
+                <div className={cn(
+                  "w-12 h-12 rounded-lg flex items-center justify-center mb-4", // Smaller icon container
+                  feature.color, 
+                  feature.bgColor
+                )}>
+                  <feature.icon size={24} /> {/* Smaller icon */}
                 </div>
-                <CardTitle className="text-2xl font-display text-gray-800">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 text-lg">{feature.description}</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">{feature.title}</h3> {/* Use h3 for semantics */}
+                <p className="text-gray-600 text-sm flex-grow">{feature.description}</p> {/* Smaller text, flex-grow */}
               </CardContent>
             </Card>
           ))}
@@ -95,7 +93,4 @@ const FeatureSection = () => {
 
 export default FeatureSection;
 
-// Helper function to conditionally join classNames
-function cn(...classes: (string | boolean)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+// Removed redundant local cn function

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,9 +12,7 @@ const NAV_ITEMS = [
   { label: "Home", path: "/" },
   { label: "Explore", path: "/explore" },
   { label: "Activities", path: "/activities" },
-  { label: "Points of Interest", path: "/points-of-interest" }, // New item
   { label: "Market", path: "/market" },
-  { label: "Transportation", path: "/transportation" },
 ];
 
 export default function Navigation({ className }: { className?: string }) {
@@ -25,19 +22,12 @@ export default function Navigation({ className }: { className?: string }) {
   const isMobile = useMobile();
   const { user, isLoading } = useAuth();
 
-  // Only show the navigation bar after determining auth state
-  const [showNav, setShowNav] = useState(false);
-
   const isCurrentPath = (path: string) => {
     if (path === "/") {
       return location.pathname === "/";
     }
     return location.pathname.startsWith(path);
   };
-
-  useEffect(() => {
-    setShowNav(!isLoading);
-  }, [isLoading]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,8 +45,6 @@ export default function Navigation({ className }: { className?: string }) {
     };
   }, []);
 
-  if (!showNav) return null;
-
   return (
     <header
       className={cn(
@@ -71,28 +59,18 @@ export default function Navigation({ className }: { className?: string }) {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link
           to="/"
-          className="flex items-center group text-xl lg:text-2xl font-bold font-display"
+          className="flex items-center group relative transition-transform duration-300 hover:scale-105"
         >
-          <span
+          <img 
+            src="/images/discover_diani_website_logo.png" 
+            alt="Discover Diani" 
             className={cn(
-              "transition-colors duration-300",
-              scrolled || mobileMenuOpen
-                ? "text-ocean"
-                : "text-white"
+              "h-10 md:h-12 w-auto transition-all duration-300",
+              scrolled || mobileMenuOpen 
+                ? "filter-none" 
+                : "brightness-[1.2]"
             )}
-          >
-            Discover
-          </span>
-          <span
-            className={cn(
-              "transition-colors duration-300",
-              scrolled || mobileMenuOpen
-                ? "text-coral"
-                : "text-white"
-            )}
-          >
-            Diani
-          </span>
+          />
         </Link>
 
         {isMobile ? (
@@ -126,7 +104,7 @@ export default function Navigation({ className }: { className?: string }) {
           </div>
         ) : (
           <div className="flex items-center gap-6">
-            <nav className="hidden md:flex space-x-1 items-center">
+            <nav className="flex space-x-1 items-center">
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.path}

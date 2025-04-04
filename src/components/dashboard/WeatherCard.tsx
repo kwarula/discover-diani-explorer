@@ -83,7 +83,7 @@ const WeatherCard = ({ currentDate, currentTime, userName }: WeatherCardProps) =
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10">
         <div className="mb-6 md:mb-0">
           <h1 className="text-3xl md:text-4xl font-display font-bold mb-3">
-            Welcome back, {userName}!
+            {userName ? `Welcome back, ${userName}!` : 'Welcome back!'}
           </h1>
           <p className="text-white/90 text-lg">
             {currentDate} • {currentTime} • Diani Beach

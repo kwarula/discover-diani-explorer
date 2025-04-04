@@ -10,6 +10,8 @@ export type Profile = {
   avatar_url: string | null;
   bio: string | null;
   is_tourist: boolean | null;
+  role: 'user' | 'admin' | 'moderator'; // Added based on migration 20250404122339
+  status: 'active' | 'suspended' | 'banned'; // Added based on migration 20250404122723
 };
 
 export type Listing = {
