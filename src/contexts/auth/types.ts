@@ -2,7 +2,6 @@
 import { createContext } from 'react';
 import { User, Provider } from '@supabase/supabase-js';
 import { Profile } from '@/types/database';
-import { AuthResult, ProfileFormValues } from './useAuthMethods';
 
 export interface AuthContextType {
   user: User | null;
@@ -11,11 +10,11 @@ export interface AuthContextType {
   isSigningIn: boolean;
   isSigningUp: boolean;
   isSigningOut: boolean;
-  signIn: (email: string, password: string) => Promise<AuthResult>;
-  signUp: (email: string, password: string, userData: any) => Promise<AuthResult>;
-  signInWithProvider: (provider: Provider) => Promise<AuthResult>;
-  signOut: () => Promise<AuthResult>;
-  updateProfile: (userId: string, data: ProfileFormValues) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, userData: any) => Promise<any>;
+  signInWithProvider: (provider: Provider) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateProfile: (profile: Partial<Profile>) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -25,9 +24,9 @@ export const AuthContext = createContext<AuthContextType>({
   isSigningIn: false,
   isSigningUp: false,
   isSigningOut: false,
-  signIn: async () => ({ success: false }),
-  signUp: async () => ({ success: false }),
-  signInWithProvider: async () => ({ success: false }),
-  signOut: async () => ({ success: false }),
-  updateProfile: async () => false,
+  signIn: async () => null,
+  signUp: async () => null,
+  signInWithProvider: async () => {}, 
+  signOut: async () => {},
+  updateProfile: async () => {},
 });

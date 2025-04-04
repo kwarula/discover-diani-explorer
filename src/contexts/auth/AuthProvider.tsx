@@ -8,8 +8,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { 
     user, 
     profile, 
-    isLoading,
-    setProfile
+    isLoading, 
+    setProfile 
   } = useAuthState();
   
   const { 
@@ -17,7 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp, 
     signOut, 
     updateProfile, 
-    signInWithProvider,
+    signInWithProvider, // Destructure the new method here
     isSigningIn,
     isSigningUp,
     isSigningOut
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSigningUp,
     isSigningOut,
     signIn,
-    signInWithProvider,
+    signInWithProvider, // Add the new method here
     signUp,
     signOut,
     updateProfile

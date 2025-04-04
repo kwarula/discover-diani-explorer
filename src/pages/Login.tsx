@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
 import { Input } from '@/components/ui/input';
@@ -16,23 +16,26 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [error, setError] = useState(''); // Remove general error
   const [emailError, setEmailError] = useState(''); // State for email field error
   const [passwordError, setPasswordError] = useState(''); // State for password field error
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signInWithProvider, user, isSigningIn } = useAuth();
+  const { signIn, signInWithProvider, user } = useAuth(); // Add signInWithProvider
   
   const from = location.state?.from?.pathname || '/dashboard';
   
   // If user is already logged in, redirect to dashboard
-  useEffect(() => {
+  React.useEffect(() => {
     if (user) {
       navigate(from, { replace: true });
     }
   }, [user, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     e.preventDefault();
     
     // Clear previous errors
@@ -46,22 +49,22 @@ const Login = () => {
     }
     
     try {
-      const result = await signIn(email, password);
-      if (!result.success && result.error) {
-        // Basic error routing - adjust based on actual Supabase error messages
-        if (result.error.includes('Invalid login credentials')) {
-          setPasswordError(result.error);
-        } else if (result.error.includes('Email not confirmed') || result.error.includes('User not found')) {
-          setEmailError(result.error);
-        } else {
-          // Fallback for unexpected errors
-          setPasswordError(result.error); 
-        }
-      }
+      setIsSubmitting(true);
+      await signIn(email, password);
       // Redirect is handled by useEffect
     } catch (error: any) {
       const message = error.message || 'Failed to sign in';
-      setPasswordError(message);
+      // Basic error routing - adjust based on actual Supabase error messages
+      if (message.includes('Invalid login credentials')) {
+        setPasswordError(message);
+      } else if (message.includes('Email not confirmed') || message.includes('User not found')) { // Example check
+        setEmailError(message);
+      } else {
+        // Fallback for unexpected errors, maybe use toast?
+        setPasswordError(message); 
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -131,9 +134,9 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-ocean hover:bg-ocean-dark"
-                disabled={isSigningIn}
+                disabled={isSubmitting}
               >
-                {isSigningIn ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Logging in...

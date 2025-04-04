@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Session, User, Provider } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import { SubmitHandler } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Profile } from '@/types/database';
 
@@ -40,16 +41,12 @@ export type ProfileFormValues = {
   dietaryPreferences?: string[];
 };
 
-// Modified to receive a navigation function instead of using useNavigate directly
-export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) => {
+export const useAuthMethods = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const signIn = async (email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true);
-    setIsSigningIn(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -61,19 +58,6 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
         return { success: false, error: error.message };
       }
 
-      // Fetch the user profile if sign-in is successful
-      if (data.user && setProfile) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileData) {
-          setProfile(profileData as Profile);
-        }
-      }
-
       toast.success('Signed in successfully!');
       return { success: true, data };
     } catch (error: any) {
@@ -81,13 +65,11 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
-      setIsSigningIn(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: Partial<RegisterFormValues>): Promise<AuthResult> => {
     setIsLoading(true);
-    setIsSigningUp(true);
     try {
       // First, create the user account
       const { data, error } = await supabase.auth.signUp({
@@ -129,13 +111,11 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
-      setIsSigningUp(false);
     }
   };
 
   const signOut = async (): Promise<AuthResult> => {
     setIsLoading(true);
-    setIsSigningOut(true);
     try {
       const { error } = await supabase.auth.signOut();
       
@@ -145,47 +125,32 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
       }
       
       toast.success('Signed out successfully!');
-      
-      // Instead of using navigate directly, let Auth context handle navigation
-      if (setProfile) {
-        setProfile(null);
-      }
-      
+      navigate('/');
       return { success: true };
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during sign out');
       return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
-      setIsSigningOut(false);
     }
   };
 
-  const signInWithProvider = async (provider: Provider): Promise<AuthResult> => {
-    setIsLoading(true);
-    setIsSigningIn(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+  const handleLogin: SubmitHandler<LoginFormValues> = async (data) => {
+    return await signIn(data.email, data.password);
+  };
 
-      if (error) {
-        toast.error(error.message);
-        return { success: false, error: error.message };
-      }
-
-      // With OAuth, we'll handle the profile fetch on redirect callback
-      return { success: true, data };
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred during sign in');
-      return { success: false, error: error.message };
-    } finally {
-      setIsLoading(false);
-      setIsSigningIn(false);
+  const handleRegister: SubmitHandler<RegisterFormValues> = async (data) => {
+    if (data.password !== data.confirmPassword) {
+      toast.error('Passwords do not match');
+      return { success: false, error: 'Passwords do not match' };
     }
+    
+    return await signUp(data.email, data.password, {
+      fullName: data.fullName,
+      stayDuration: data.stayDuration,
+      interests: data.interests,
+      dietaryPreferences: data.dietaryPreferences,
+    });
   };
 
   const updateProfile = async (userId: string, data: ProfileFormValues): Promise<boolean> => {
@@ -210,19 +175,6 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
         return false;
       }
 
-      // Update the local state if setProfile is provided
-      if (setProfile) {
-        const { data: updatedProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-          
-        if (updatedProfile) {
-          setProfile(updatedProfile as Profile);
-        }
-      }
-
       toast.success('Profile updated successfully!');
       return true;
     } catch (error: any) {
@@ -237,11 +189,9 @@ export const useAuthMethods = (setProfile?: (profile: Profile | null) => void) =
     signIn,
     signUp,
     signOut,
-    signInWithProvider,
+    handleLogin,
+    handleRegister,
     updateProfile,
     isLoading,
-    isSigningIn,
-    isSigningUp,
-    isSigningOut,
   };
 };
