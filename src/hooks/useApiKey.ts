@@ -15,8 +15,9 @@ export const useApiKey = (keyType: ApiKeyType, options: UseApiKeyOptions = {}) =
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  // Fix: access session from the auth context correctly
-  const { user, session } = useAuth();
+  
+  // Fix: Get session directly from useAuth() instead of accessing it as a property
+  const auth = useAuth();
   
   useEffect(() => {
     const fetchApiKey = async () => {
@@ -24,7 +25,7 @@ export const useApiKey = (keyType: ApiKeyType, options: UseApiKeyOptions = {}) =
       setError(null);
       
       // Check if we have a token to authenticate with Supabase
-      if (!session?.access_token) {
+      if (!auth.session?.access_token) {
         setError('Authentication required to fetch API keys');
         setLoading(false);
         return;
@@ -60,10 +61,10 @@ export const useApiKey = (keyType: ApiKeyType, options: UseApiKeyOptions = {}) =
       }
     };
     
-    if (session) {
+    if (auth.session) {
       fetchApiKey();
     }
-  }, [keyType, session, showToastOnError]);
+  }, [keyType, auth.session, showToastOnError]);
   
   return { apiKey, loading, error };
 };

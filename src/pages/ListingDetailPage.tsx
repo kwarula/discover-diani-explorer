@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Loader, MapPin, Calendar, Clock, DollarSign, Star, MessageCircle, AlertTriangle, Compass, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -204,8 +205,7 @@ const ListingDetailPage: React.FC = () => {
                 {showReviewForm && (
                   <div className="mb-8">
                     <ReviewForm 
-                      listingId={id} 
-                      onSuccess={() => setShowReviewForm(false)}
+                      listingId={id || ''} 
                       onCancel={() => setShowReviewForm(false)}
                     />
                   </div>

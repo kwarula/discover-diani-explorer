@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "@/integrations/supabase/client";
-import { PointOfInterest, UserProfile } from "@/types/database";
+import { PointOfInterest, Profile } from "@/types/database";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -137,7 +137,7 @@ export async function checkUserHasOperator(userId: string): Promise<boolean> {
 /**
  * Function to get a user's profile
  */
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+export async function getUserProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -149,13 +149,13 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     return null;
   }
   
-  return data as UserProfile;
+  return data as Profile;
 }
 
 /**
  * Function to update a user's profile
  */
-export async function updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<any> {
+export async function updateUserProfile(userId: string, profileData: Partial<Profile>): Promise<any> {
   // Ensure id is included
   const dataWithId = { ...profileData, id: userId };
   

@@ -104,7 +104,7 @@ export const useAuthState = () => {
         return;
       }
       
-      // Fix: Ensure the id field is non-optional for insert operation
+      // Fix: Ensure the id field is a valid value for the insert operation
       const initialProfile = {
         id: userId,
         full_name: userData.user.user_metadata?.full_name || 
@@ -123,7 +123,7 @@ export const useAuthState = () => {
       // Insert the profile
       const { error } = await supabase
         .from('profiles')
-        .insert(initialProfile);
+        .insert([initialProfile]); // Fixed: Wrap initialProfile in array
 
       if (error) {
         console.error('Error creating initial profile:', error);

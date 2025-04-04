@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from '@/integrations/supabase/client';
-import { Listing, PointOfInterest } from '@/types/database';
+import { Listing } from '@/types/database';
 import { Link } from 'react-router-dom';
 
 const activityCategories = [
@@ -41,7 +41,7 @@ const ActivitiesPage = () => {
           user_id, wildlife_notice
         `;
         const { data, error: dbError } = await supabase
-          .from('listings' as any)
+          .from('listings')
           .select(listingsColumns)
           .eq('category', 'activity')
           .order('featured', { ascending: false })
@@ -50,7 +50,7 @@ const ActivitiesPage = () => {
         console.log("Fetched Activities Raw:", { data, dbError });
 
         if (dbError) throw dbError;
-        setAllActivities((data as Listing[]) || []);
+        setAllActivities(data as unknown as Listing[] || []);
       } catch (err: any) {
         console.error("Error fetching activities:", err);
         setError("Failed to load activities. Please try again later.");

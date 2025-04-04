@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/database';
+import { Listing } from '@/types/database'; // Import specific type instead of using Tables<>
 
 // Define the structure of a listing object, potentially joining operator and calculated rating
-export type MarketListing = Tables<'listings'> & {
+export type MarketListing = Listing & {
   // We might add operator details or calculated rating later
   average_rating?: number;
   operator_name?: string;
@@ -111,7 +112,7 @@ export const useMarketListings = ({
 
         // Ensure the returned object conforms to MarketListing
         return {
-          ...(listingData as Tables<'listings'>), // Cast to ensure all original fields are included
+          ...listingData as Listing, // Cast to ensure all original fields are included
           average_rating,
         };
       }) || [];

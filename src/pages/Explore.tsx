@@ -18,8 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link } from 'react-router-dom'; // Added Link for cards
 
 const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
-// Fix: Access environment variable directly instead of validation
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
+// Fix: Access environment variable correctly
+const GOOGLE_MAPS_API_KEY = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
 const defaultCenter = { lat: -4.2833, lng: 39.5833 }; // Diani Beach center
 
 // --- Remove Static Sample Data ---
@@ -80,7 +80,6 @@ const ExplorePage = () => {
       }));
     // TODO: Add filteredListings to mapLocations if/when coordinate data is available
   }, [filteredPois]);
-
 
   if (!GOOGLE_MAPS_API_KEY) {
       return <div className="text-red-600 p-4">Error: Google Maps API Key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.</div>;
@@ -277,7 +276,7 @@ const ExplorePage = () => {
 // --- Refactored/New Helper Components ---
 
 // Grid for displaying listings
-const ListingGrid = ({ listings }: { listings: Tables<'listings'>[] }) => {
+const ListingGrid = ({ listings }: { listings: Listing[] }) => {
   if (listings.length === 0) {
     return <p className="text-center text-gray-500 py-10">No items match the current filters in this category.</p>;
   }
@@ -291,7 +290,7 @@ const ListingGrid = ({ listings }: { listings: Tables<'listings'>[] }) => {
 };
 
 // Grid for displaying POIs
-const PoiGrid = ({ pois }: { pois: Tables<'points_of_interest'>[] }) => {
+const PoiGrid = ({ pois }: { pois: PointOfInterest[] }) => {
    if (pois.length === 0) {
     return <p className="text-center text-gray-500 py-10">No points of interest found.</p>;
   }
@@ -309,7 +308,7 @@ const PoiGrid = ({ pois }: { pois: Tables<'points_of_interest'>[] }) => {
 
 
 // Refactored Location Card to work with Listing data
-const ListingCard = ({ listing }: { listing: Tables<'listings'> }) => {
+const ListingCard = ({ listing }: { listing: Listing }) => {
   // Use placeholder image if listing.images is null/empty
   const imageUrl = listing.images?.[0] || '/placeholder.svg';
 
