@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useApiKey } from './useApiKey';
 
 // Types for tide data
 export interface TidePoint {
@@ -14,23 +15,31 @@ export const useTideData = () => {
   const [tideData, setTideData] = useState<TidePoint[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { 
+    apiKey: worldTidesApiKey, 
+    loading: loadingWorldTidesKey,
+    error: worldTidesKeyError 
+  } = useApiKey('worldtides', { showToastOnError: false });
 
   useEffect(() => {
     const fetchTideData = async () => {
+      // Wait for API key to load before proceeding
+      if (loadingWorldTidesKey) {
+        return;
+      }
+      
       setLoading(true);
       setError(null);
-
-      // World Tides API key from environment variable
-      const WORLD_TIDES_API_KEY = import.meta.env.VITE_WORLD_TIDES_API_KEY;
       
       // Diani Beach coordinates
       const LAT = -4.28;
       const LON = 39.58;
       
       // Check if API key exists
-      if (!WORLD_TIDES_API_KEY) {
+      if (!worldTidesApiKey) {
         console.error('World Tides API key is missing');
-        setError('World Tides API key is missing. Please check your environment variables.');
+        setError(worldTidesKeyError || 'World Tides API key is missing.');
         setLoading(false);
         
         // Provide fallback data for development
@@ -71,7 +80,7 @@ export const useTideData = () => {
         
         // World Tides API endpoint
         const response = await axios.get(
-          `https://www.worldtides.info/api/v3?extremes&date=${today}&lat=${LAT}&lon=${LON}&key=${WORLD_TIDES_API_KEY}`
+          `https://www.worldtides.info/api/v3?extremes&date=${today}&lat=${LAT}&lon=${LON}&key=${worldTidesApiKey}`
         );
         
         if (response.data && response.data.extremes) {
@@ -142,7 +151,7 @@ export const useTideData = () => {
     };
 
     fetchTideData();
-  }, []);
+  }, [worldTidesApiKey, loadingWorldTidesKey, worldTidesKeyError]);
 
   return { tideData, loading, error };
 };

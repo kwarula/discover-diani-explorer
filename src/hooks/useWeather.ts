@@ -3,30 +3,25 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { format, addDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
+import { useApiKey } from './useApiKey';
 
-// Access environment variables correctly for Vite
-const OPENWEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
-const STORMGLASS_API_KEY = import.meta.env.VITE_STORMGLASS_API_KEY;
 const LAT = -4.28; // Latitude for Diani Beach
 const LON = 39.58; // Longitude for Diani Beach
 
-const OPENWEATHER_URL = `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-const STORMGLASS_URL = 'https://api.stormglass.io/v2/weather/point';
-
 // Define interfaces for the data structures
 interface CurrentWeatherData {
-  temp: number; // From OpenWeatherMap
-  description: string; // From OpenWeatherMap
-  icon: string; // From OpenWeatherMap
-  humidity: number; // From OpenWeatherMap
-  windSpeed: number; // From OpenWeatherMap
-  cityName: string; // From OpenWeatherMap
+  temp: number; 
+  description: string; 
+  icon: string; 
+  humidity: number; 
+  windSpeed: number; 
+  cityName: string; 
 }
 
 interface ForecastDay {
   day: string; // e.g., "Mon"
   temp: number; // Average temp for the day
-  icon: string; // Weather icon code (Stormglass doesn't provide standard codes, we might need mapping or use temp)
+  icon: string; // Weather icon code
   description: string; // General condition (derived)
 }
 
@@ -37,7 +32,7 @@ interface UseWeatherResult {
   error: string | null;
 }
 
-// Helper to get a simplified description based on Stormglass icon (if available) or temp
+// Helper to get a simplified description based on temperature
 const getSimpleDescription = (temp: number): string => {
   if (temp > 28) return 'Hot';
   if (temp > 20) return 'Warm';
@@ -50,8 +45,25 @@ const useWeather = (): UseWeatherResult => {
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { 
+    apiKey: openweatherApiKey, 
+    loading: loadingOpenWeatherKey,
+    error: openWeatherKeyError 
+  } = useApiKey('openweather', { showToastOnError: false });
+  
+  const { 
+    apiKey: stormglassApiKey, 
+    loading: loadingStormGlassKey,
+    error: stormGlassKeyError 
+  } = useApiKey('stormglass', { showToastOnError: false });
 
   const fetchWeatherData = useCallback(async () => {
+    // Wait for API keys to load or fail before proceeding
+    if (loadingOpenWeatherKey || loadingStormGlassKey) {
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     setCurrentWeather(null);
@@ -61,20 +73,17 @@ const useWeather = (): UseWeatherResult => {
     let forecastData: ForecastDay[] = [];
     let fetchError: string | null = null;
 
-    // Debug the API keys
-    console.log('OpenWeather API Key available:', !!OPENWEATHER_API_KEY);
-    console.log('Stormglass API Key available:', !!STORMGLASS_API_KEY);
-
     // --- Fetch Current Weather (OpenWeatherMap) ---
-    if (!OPENWEATHER_API_KEY) {
-      fetchError = 'OpenWeatherMap API key is missing.';
+    if (!openweatherApiKey) {
+      fetchError = openWeatherKeyError || 'OpenWeatherMap API key is missing.';
       toast({
         title: "Weather API Error",
-        description: "OpenWeatherMap API key is missing. Please check your environment variables.",
+        description: "OpenWeatherMap API key is missing. Please contact the administrator.",
         variant: "destructive"
       });
     } else {
       try {
+        const OPENWEATHER_URL = `https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${openweatherApiKey}&units=metric`;
         const response = await axios.get(OPENWEATHER_URL);
         const data = response.data;
         if (data && data.main && data.weather && data.weather.length > 0) {
@@ -102,84 +111,89 @@ const useWeather = (): UseWeatherResult => {
     }
 
     // --- Fetch Forecast (Stormglass) ---
-    if (!STORMGLASS_API_KEY) {
-       fetchError = (fetchError ? fetchError + '; ' : '') + 'Stormglass API key is missing.';
-       toast({
+    if (!stormglassApiKey) {
+      fetchError = (fetchError ? fetchError + '; ' : '') + (stormGlassKeyError || 'Stormglass API key is missing.');
+      toast({
         title: "Weather API Error",
-        description: "Stormglass API key is missing. Please check your environment variables.",
+        description: "Stormglass API key is missing. Please contact the administrator.",
         variant: "destructive"
       });
     } else {
-        const params = 'airTemperature'; // Only request air temperature
-        const now = new Date();
-        const start = startOfDay(addDays(now, 1)).toISOString(); // Start from tomorrow midnight UTC
-        const end = endOfDay(addDays(now, 3)).toISOString(); // End 3 days from now midnight UTC
+      const params = 'airTemperature'; // Only request air temperature
+      const now = new Date();
+      const start = startOfDay(addDays(now, 1)).toISOString(); // Start from tomorrow midnight UTC
+      const end = endOfDay(addDays(now, 3)).toISOString(); // End 3 days from now midnight UTC
 
-        try {
-            const response = await axios.get(STORMGLASS_URL, {
-                params: { lat: LAT, lng: LON, params, start, end },
-                headers: { Authorization: STORMGLASS_API_KEY },
-            });
+      try {
+        const response = await axios.get('https://api.stormglass.io/v2/weather/point', {
+          params: { lat: LAT, lng: LON, params, start, end },
+          headers: { Authorization: stormglassApiKey },
+        });
 
-            const dailyData: { [key: string]: { temps: number[]; icons: number[] } } = {};
+        const dailyData: { [key: string]: { temps: number[]; icons: number[] } } = {};
 
-            response.data.hours.forEach((hour: any) => {
-                const dateStr = format(parseISO(hour.time), 'yyyy-MM-dd');
-                if (!dailyData[dateStr]) {
-                    dailyData[dateStr] = { temps: [], icons: [] };
-                }
-                // Stormglass returns temp in Celsius by default
-                 // Check for null/undefined explicitly before pushing
-                 if (hour.airTemperature?.sg != null) { 
-                    dailyData[dateStr].temps.push(hour.airTemperature.sg);
-                 }
-                 // Removed weatherIcon handling as it's not requested or used
-             });
+        response.data.hours.forEach((hour: any) => {
+          const dateStr = format(parseISO(hour.time), 'yyyy-MM-dd');
+          if (!dailyData[dateStr]) {
+            dailyData[dateStr] = { temps: [], icons: [] };
+          }
+          // Check for null/undefined explicitly before pushing
+          if (hour.airTemperature?.sg != null) { 
+            dailyData[dateStr].temps.push(hour.airTemperature.sg);
+          }
+        });
 
-             forecastData = Object.keys(dailyData).map(dateStr => {
-                const dayTemps = dailyData[dateStr].temps;
-                const avgTemp = dayTemps.length > 0
-                    ? Math.round(dayTemps.reduce((a, b) => a + b, 0) / dayTemps.length)
-                    : 0; // Or handle case with no temp data
+        forecastData = Object.keys(dailyData).map(dateStr => {
+          const dayTemps = dailyData[dateStr].temps;
+          const avgTemp = dayTemps.length > 0
+            ? Math.round(dayTemps.reduce((a, b) => a + b, 0) / dayTemps.length)
+            : 0; // Or handle case with no temp data
 
-                return {
-                    day: format(parseISO(dateStr), 'EEE'), // Format as 'Mon', 'Tue', etc.
-                    temp: avgTemp,
-                    icon: '01d', // Placeholder icon - Stormglass icons aren't standard
-                    description: getSimpleDescription(avgTemp),
-                };
-            }).slice(0, 3); // Ensure only 3 days max
+          return {
+            day: format(parseISO(dateStr), 'EEE'), // Format as 'Mon', 'Tue', etc.
+            temp: avgTemp,
+            icon: '01d', // Placeholder icon - Stormglass icons aren't standard
+            description: getSimpleDescription(avgTemp),
+          };
+        }).slice(0, 3); // Ensure only 3 days max
 
-        } catch (err) {
-            console.error('Error fetching forecast data:', err);
-            const stormglassError = (axios.isAxiosError(err) && err.response?.data?.errors)
-                ? `Forecast Error: ${JSON.stringify(err.response.data.errors)}`
-                : 'Failed to fetch forecast data.';
-            fetchError = (fetchError ? fetchError + '; ' : '') + stormglassError;
-        }
+      } catch (err) {
+        console.error('Error fetching forecast data:', err);
+        const stormglassError = (axios.isAxiosError(err) && err.response?.data?.errors)
+          ? `Forecast Error: ${JSON.stringify(err.response.data.errors)}`
+          : 'Failed to fetch forecast data.';
+        fetchError = (fetchError ? fetchError + '; ' : '') + stormglassError;
+      }
     }
 
     // --- Update State ---
     if (fetchError) {
-        setError(fetchError);
+      setError(fetchError);
     }
     if (currentData) {
-        setCurrentWeather(currentData);
+      setCurrentWeather(currentData);
     }
     if (forecastData.length > 0) {
-        setForecast(forecastData);
+      setForecast(forecastData);
     }
     // Only set error if BOTH failed or a key was missing
     if (!currentData && forecastData.length === 0 && fetchError) {
-       setError(fetchError || 'Failed to fetch any weather data.');
+      setError(fetchError || 'Failed to fetch any weather data.');
     } else if (fetchError) {
-        // Log partial failure but don't block UI if some data loaded
-        console.warn("Partial weather fetch failure:", fetchError);
-        setError(null); // Clear blocking error if some data is available
+      // Log partial failure but don't block UI if some data loaded
+      console.warn("Partial weather fetch failure:", fetchError);
+      setError(null); // Clear blocking error if some data is available
     }
 
     setLoading(false);
-  }, []); // Dependencies: none, fetch on mount
+  }, [
+    openweatherApiKey, 
+    stormglassApiKey, 
+    loadingOpenWeatherKey, 
+    loadingStormGlassKey, 
+    openWeatherKeyError, 
+    stormGlassKeyError
+  ]);
 
   useEffect(() => {
     fetchWeatherData();

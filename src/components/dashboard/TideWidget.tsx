@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Waves } from 'lucide-react'; // Icon for tides
 import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 import { format } from 'date-fns'; // For formatting time
+import { useApiKey } from '@/hooks/useApiKey';
 
 // Diani Beach Coordinates (approximate)
 const DIANI_LAT = -4.2833;
@@ -48,15 +50,25 @@ const TideWidget: React.FC = () => {
   const [tideData, setTideData] = useState<ProcessedTideData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { 
+    apiKey: stormglassApiKey, 
+    loading: loadingStormGlassKey,
+    error: stormGlassKeyError 
+  } = useApiKey('stormglass', { showToastOnError: false });
 
   useEffect(() => {
     const fetchTides = async () => {
+      // Wait for API key to load before proceeding
+      if (loadingStormGlassKey) {
+        return;
+      }
+      
       setIsLoading(true);
       setError(null);
-      const apiKey = import.meta.env.VITE_STORMGLASS_API_KEY;
 
-      if (!apiKey) {
-        setError("Storm Glass API key is missing.");
+      if (!stormglassApiKey) {
+        setError(stormGlassKeyError || "Storm Glass API key is missing.");
         setIsLoading(false);
         return;
       }
@@ -79,7 +91,7 @@ const TideWidget: React.FC = () => {
       try {
         const response = await fetch(apiUrl, {
           headers: {
-            'Authorization': apiKey,
+            'Authorization': stormglassApiKey,
           },
         });
 
@@ -125,9 +137,8 @@ const TideWidget: React.FC = () => {
       }
     };
 
-    fetchTides(); // Correct function name
-    // TODO: Add appropriate refresh interval if needed
-  }, []);
+    fetchTides();
+  }, [stormglassApiKey, loadingStormGlassKey, stormGlassKeyError]);
 
   return (
     <Card>
@@ -155,14 +166,12 @@ const TideWidget: React.FC = () => {
              ) : (
                  <p className="text-muted-foreground">Next high tide data unavailable.</p>
              )}
-             {/* Note: Current level/state not available from /extremes endpoint */}
           </div>
         )}
          {!isLoading && !error && !tideData && (
              <p className="text-xs text-muted-foreground">Tide data unavailable.</p>
          )}
-         {/* Removed chart placeholder */}
-      </CardContent> {/* Removed extra closing div */}
+      </CardContent>
     </Card>
   );
 };
