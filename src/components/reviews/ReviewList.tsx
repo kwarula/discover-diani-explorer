@@ -1,12 +1,14 @@
-
 import React from 'react';
-import { Review } from '@/types/database';
+import { Tables } from '@/types/database';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Star, UserCircle, CheckCircle } from 'lucide-react'; // Icons
 import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
 
+// Updated type alias to use basic review data
+type ReviewData = Tables<'reviews'>;
+
 interface ReviewListProps {
-  reviews: Review[]; 
+  reviews: ReviewData[]; // Use ReviewData[]
   isLoading: boolean;
   error?: string | null;
 }
@@ -49,6 +51,7 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, isLoading, error }) =>
         return (
           <div key={review.id} className="flex space-x-4 border-b pb-4 last:border-b-0 last:pb-0">
             <Avatar className="h-10 w-10">
+              {/* <AvatarImage src={reviewerAvatar} alt={reviewerName} /> */}
               <AvatarFallback>{fallbackName}</AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-1">

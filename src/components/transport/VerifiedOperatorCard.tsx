@@ -1,14 +1,25 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'; // Added Link
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, MessageSquare } from 'lucide-react'; // Icons for phone and WhatsApp
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
-import { Operator } from '@/types/database';
+import { Tables } from '@/types/database'; // Assuming types are generated
 
+// Define the expected props based on the 'operators' table structure
+// Use Pick or extend Tables<'operators'> as needed (Tables helper returns the Row type directly)
 interface VerifiedOperatorCardProps {
-  operator: Operator;
+  operator: Pick<
+    Tables<'operators'>, // Corrected: Use Tables<'operators'> directly
+    | 'id'
+    | 'business_name' // Or contact_person_name if more appropriate
+    | 'logo_url' // Or a dedicated profile picture field
+    | 'contact_phone'
+    | 'service_area_description' // Or operating areas
+    | 'is_verified'
+    | 'specialties' // Could indicate tuk-tuk, moto, car hire etc.
+  >;
+  // Add any other props needed, e.g., for reviews link
 }
 
 const VerifiedOperatorCard: React.FC<VerifiedOperatorCardProps> = ({ operator }) => {
@@ -59,10 +70,13 @@ const VerifiedOperatorCard: React.FC<VerifiedOperatorCardProps> = ({ operator })
             </a>
           </div>
         )}
+        {/* Placeholder for Reviews/Ratings */}
+        {/* <div className="text-muted-foreground">Reviews: (Coming Soon)</div> */}
          <div className="mt-auto pt-2 text-right text-sm text-ocean group-hover:underline">
             View Profile &rarr;
          </div>
       </CardContent>
+      {/* Optional CardFooter for actions like 'Book Now' (future) */}
     </Card>
     </Link>
   );

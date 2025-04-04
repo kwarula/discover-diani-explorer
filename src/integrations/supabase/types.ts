@@ -9,114 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      flagged_content: {
-        Row: {
-          content_id: string
-          content_snippet: string | null
-          content_type: Database["public"]["Enums"]["flagged_content_type"]
-          id: string
-          moderator_notes: string | null
-          reason: string | null
-          reported_at: string
-          reported_by_user_id: string | null
-          resolved_at: string | null
-          resolved_by_user_id: string | null
-          status: Database["public"]["Enums"]["moderation_status"]
-        }
-        Insert: {
-          content_id: string
-          content_snippet?: string | null
-          content_type: Database["public"]["Enums"]["flagged_content_type"]
-          id?: string
-          moderator_notes?: string | null
-          reason?: string | null
-          reported_at?: string
-          reported_by_user_id?: string | null
-          resolved_at?: string | null
-          resolved_by_user_id?: string | null
-          status?: Database["public"]["Enums"]["moderation_status"]
-        }
-        Update: {
-          content_id?: string
-          content_snippet?: string | null
-          content_type?: Database["public"]["Enums"]["flagged_content_type"]
-          id?: string
-          moderator_notes?: string | null
-          reason?: string | null
-          reported_at?: string
-          reported_by_user_id?: string | null
-          resolved_at?: string | null
-          resolved_by_user_id?: string | null
-          status?: Database["public"]["Enums"]["moderation_status"]
-        }
-        Relationships: []
-      }
       listings: {
         Row: {
           category: string | null
           created_at: string
           description: string | null
           featured: boolean
-          guide_recommended: boolean | null
           id: string
           images: string[] | null
-          is_verified: boolean | null
           location: string | null
           price: number | null
-          price_range: string | null
           price_unit: string | null
           status: string
           sub_category: string | null
-          tide_dependency: string | null
           title: string
-          transport_instructions: string | null
           updated_at: string
           user_id: string | null
-          wildlife_notice: string | null
         }
         Insert: {
           category?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
-          guide_recommended?: boolean | null
           id?: string
           images?: string[] | null
-          is_verified?: boolean | null
           location?: string | null
           price?: number | null
-          price_range?: string | null
           price_unit?: string | null
           status?: string
           sub_category?: string | null
-          tide_dependency?: string | null
           title: string
-          transport_instructions?: string | null
           updated_at?: string
           user_id?: string | null
-          wildlife_notice?: string | null
         }
         Update: {
           category?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
-          guide_recommended?: boolean | null
           id?: string
           images?: string[] | null
-          is_verified?: boolean | null
           location?: string | null
           price?: number | null
-          price_range?: string | null
           price_unit?: string | null
           status?: string
           sub_category?: string | null
-          tide_dependency?: string | null
           title?: string
-          transport_instructions?: string | null
           updated_at?: string
           user_id?: string | null
-          wildlife_notice?: string | null
         }
         Relationships: []
       }
@@ -203,14 +143,12 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          is_verified: boolean | null
           key_offerings: string[] | null
           location_coordinates: unknown | null
           logo_url: string | null
           operating_hours: Json | null
           price_range: string | null
           service_area_description: string | null
-          specialties: string[] | null
           status: string
           updated_at: string
           user_id: string
@@ -230,14 +168,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_verified?: boolean | null
           key_offerings?: string[] | null
           location_coordinates?: unknown | null
           logo_url?: string | null
           operating_hours?: Json | null
           price_range?: string | null
           service_area_description?: string | null
-          specialties?: string[] | null
           status?: string
           updated_at?: string
           user_id: string
@@ -257,14 +193,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          is_verified?: boolean | null
           key_offerings?: string[] | null
           location_coordinates?: unknown | null
           logo_url?: string | null
           operating_hours?: Json | null
           price_range?: string | null
           service_area_description?: string | null
-          specialties?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -283,7 +217,6 @@ export type Database = {
           guide_required: boolean | null
           history: string | null
           id: string
-          image_urls: string[] | null
           images: string[] | null
           latitude: number
           longitude: number
@@ -302,7 +235,6 @@ export type Database = {
           guide_required?: boolean | null
           history?: string | null
           id?: string
-          image_urls?: string[] | null
           images?: string[] | null
           latitude: number
           longitude: number
@@ -321,7 +253,6 @@ export type Database = {
           guide_required?: boolean | null
           history?: string | null
           id?: string
-          image_urls?: string[] | null
           images?: string[] | null
           latitude?: number
           longitude?: number
@@ -370,9 +301,7 @@ export type Database = {
           created_at: string
           id: number
           listing_id: string
-          operator_id: string | null
           rating: number
-          used_guide: boolean | null
           user_id: string
         }
         Insert: {
@@ -380,9 +309,7 @@ export type Database = {
           created_at?: string
           id?: number
           listing_id: string
-          operator_id?: string | null
           rating: number
-          used_guide?: boolean | null
           user_id: string
         }
         Update: {
@@ -390,9 +317,7 @@ export type Database = {
           created_at?: string
           id?: number
           listing_id?: string
-          operator_id?: string | null
           rating?: number
-          used_guide?: boolean | null
           user_id?: string
         }
         Relationships: [
@@ -401,13 +326,6 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_operator_id_fkey"
-            columns: ["operator_id"]
-            isOneToOne: false
-            referencedRelation: "operators"
             referencedColumns: ["id"]
           },
         ]
@@ -420,8 +338,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      flagged_content_type: "Review" | "Comment" | "Listing" | "OperatorProfile"
-      moderation_status: "Pending" | "Resolved" | "Dismissed"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
