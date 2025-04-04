@@ -1,31 +1,49 @@
-import React, { useState, useEffect } from 'react'; // Added useState, useEffect
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Car, Bus, Bike, Footprints, CarTaxiFront, Info, AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react'; // Added Loader2
-import VerifiedOperatorCard from '@/components/transport/VerifiedOperatorCard'; // Added
-import { supabase } from '@/integrations/supabase/client'; // Added
-import { Tables } from '@/types/database'; // Added
-import { Checkbox } from "@/components/ui/checkbox"; // Added for filtering
-import { Label } from "@/components/ui/label"; // Added for filtering
+import { Car, Bus, Bike, Footprints, CarTaxiFront, Info, AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react';
+import VerifiedOperatorCard from '@/components/transport/VerifiedOperatorCard';
+import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+
+// Define local Operator type to avoid Tables namespace issues
+interface Operator {
+  id: string;
+  business_name: string;
+  business_type: string;
+  categories: string[];
+  contact_email: string;
+  contact_person_name: string;
+  contact_phone: string;
+  cover_photo_url: string | null;
+  created_at: string;
+  description: string | null;
+  key_offerings: string[] | null;
+  location_coordinates: any | null;
+  logo_url: string | null;
+  operating_hours: any | null;
+  price_range: string | null;
+  service_area_description: string | null;
+  status: string;
+  updated_at: string;
+  user_id: string;
+  is_verified: boolean | null;
+  specialties: string[] | null;
+}
 
 const Transportation = () => {
-  const [operators, setOperators] = useState<Tables<'operators'>[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
-  // TODO: Add state for other filters like type (tuk-tuk, moto, taxi) if needed
 
   useEffect(() => {
     const fetchOperators = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch operators - refine query based on how transport operators are identified
-        // Option 1: Filter by a specific 'business_type' like 'Transport'
-        // Option 2: Filter if 'specialties' array contains relevant terms
-        // Option 3: Fetch all and filter client-side (less efficient for large datasets)
-        // Explicitly select columns to ensure type alignment
         const columnsToSelect = `
           id,
           business_name,
@@ -52,15 +70,11 @@ const Transportation = () => {
         const { data, error: dbError } = await supabase
           .from('operators')
           .select(columnsToSelect)
-          // .eq('business_type', 'Transport') // Example filter (re-enable if needed)
-          // Or filter by specialties: .or('specialties.cs.{"Tuk-tuk"},specialties.cs.{"Moto"},specialties.cs.{"Taxi"}') // Re-enable if needed
-          .order('is_verified', { ascending: false }) // Show verified first
+          .order('is_verified', { ascending: false })
           .order('business_name');
 
         if (dbError) throw dbError;
 
-        // Further client-side filtering if needed (e.g., if no specific DB filter is perfect)
-        // For now, assume the query returns relevant transport operators
         setOperators(data || []);
       } catch (err: any) {
         console.error("Error fetching transport operators:", err);
@@ -79,19 +93,17 @@ const Transportation = () => {
     if (showVerifiedOnly && !op.is_verified) {
       return false;
     }
-    // Add other filter logic here based on state (e.g., selectedType)
-    // Example: if (selectedType && !op.specialties?.includes(selectedType)) return false;
     return true;
   });
 
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-4xl font-bold mb-4 text-center text-ocean-dark">Getting Around Diani</h1>
-      <p className="text-lg text-center text-gray-600 mb-8 max-w-3xl mx-auto"> {/* Reduced bottom margin */}
+      <p className="text-lg text-center text-gray-600 mb-8 max-w-3xl mx-auto">
         Navigating Diani is easy with various options available. Choose the best fit for your budget, comfort, and destination.
       </p>
 
-      <div className="text-center mb-12"> {/* Added container for the button */}
+      <div className="text-center mb-12">
         <Button asChild variant="outline">
           <Link to="/">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
@@ -113,7 +125,6 @@ const Transportation = () => {
               Show Verified Only
             </Label>
           </div>
-          {/* TODO: Add more filters here (e.g., dropdown for type based on specialties/business_type) */}
       </div>
 
       {/* Price Guidance Section */}
@@ -154,15 +165,13 @@ const Transportation = () => {
       {!loading && !error && filteredOperators.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredOperators.map(operator => (
-            // Ensure the operator data structure matches VerifiedOperatorCard props
             <VerifiedOperatorCard key={operator.id} operator={operator} />
           ))}
         </div>
       )}
-      {/* Static general info cards removed, replaced by dynamic list */}
-        <p className="text-center text-gray-600 mt-12">
-          Choose wisely and enjoy exploring all that Diani has to offer!
-        </p>
+      <p className="text-center text-gray-600 mt-12">
+        Choose wisely and enjoy exploring all that Diani has to offer!
+      </p>
     </div>
   );
 };

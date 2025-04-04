@@ -1,7 +1,42 @@
 
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { supabase } from "@/integrations/supabase/client";
+
+// Define local interfaces to avoid Tables namespace issues
+interface PointOfInterest {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  featured?: boolean;
+  guide_required?: boolean;
+  access_notes?: string;
+  entrance_fee?: string;
+  best_visit_time?: string;
+  history?: string;
+  significance?: string;
+  images?: string[];
+  image_urls?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserProfile {
+  id: string;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  bio?: string | null;
+  is_tourist?: boolean | null;
+  interests?: string[] | null;
+  stay_duration?: number | null;
+  updated_at: string;
+  created_at: string;
+  username?: string | null;
+  dietary_preferences?: string[] | null;
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -9,11 +44,6 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Uploads a file to a specified Supabase Storage bucket.
- * @param file The file object to upload.
- * @param bucketName The name of the Supabase Storage bucket.
- * @param filePath The desired path/name for the file within the bucket (should be unique).
- * @returns The public URL of the uploaded file.
- * @throws If the upload or URL retrieval fails.
  */
 export async function uploadFileToSupabase(
   file: File,
@@ -24,8 +54,8 @@ export async function uploadFileToSupabase(
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
-        cacheControl: '3600', // Optional: Cache control header
-        upsert: true, // Optional: Overwrite file if it exists
+        cacheControl: '3600',
+        upsert: true,
       });
 
     if (uploadError) {
@@ -48,7 +78,6 @@ export async function uploadFileToSupabase(
 
   } catch (error) {
     console.error("Unexpected error during file upload:", error);
-    // Re-throw the error to be caught by the calling function
     throw error;
   }
 }
@@ -56,10 +85,10 @@ export async function uploadFileToSupabase(
 /**
  * Function to get all Points of Interest
  */
-export async function getAllPOIs(category?: string) {
+export async function getAllPOIs(category?: string): Promise<PointOfInterest[] | null> {
   let query = supabase
     .from('points_of_interest')
-    .select('*') as any;
+    .select('*');
   
   if (category) {
     query = query.eq('category', category);
@@ -71,24 +100,27 @@ export async function getAllPOIs(category?: string) {
 /**
  * Function to get a single Point of Interest by ID
  */
-export async function getPOIById(id: string) {
+export async function getPOIById(id: string): Promise<PointOfInterest | null> {
   return await safeQueryFunction(() => 
     supabase
       .from('points_of_interest')
       .select('*')
       .eq('id', id)
-      .single() as any
+      .single()
   );
 }
 
 /**
  * Function to get Points of Interest near a location
  */
-export async function getPOIsNearLocation(latitude: number, longitude: number, radiusKm: number = 5) {
+export async function getPOIsNearLocation(
+  latitude: number, 
+  longitude: number, 
+  radiusKm: number = 5
+): Promise<PointOfInterest[] | null> {
   // This is a simplistic approach to finding nearby POIs
-  // A more accurate approach would use PostGIS if available
-  const latDegreeDistance = radiusKm / 111; // Approx. 111km per latitude degree
-  const lngDegreeDistance = radiusKm / (111 * Math.cos(latitude * Math.PI / 180)); // Adjust for longitude
+  const latDegreeDistance = radiusKm / 111;
+  const lngDegreeDistance = radiusKm / (111 * Math.cos(latitude * Math.PI / 180));
   
   return await safeQueryFunction(() => 
     supabase
@@ -97,7 +129,7 @@ export async function getPOIsNearLocation(latitude: number, longitude: number, r
       .gte('latitude', latitude - latDegreeDistance)
       .lte('latitude', latitude + latDegreeDistance)
       .gte('longitude', longitude - lngDegreeDistance)
-      .lte('longitude', longitude + lngDegreeDistance) as any
+      .lte('longitude', longitude + lngDegreeDistance)
   );
 }
 
@@ -131,7 +163,7 @@ export async function checkUserHasOperator(userId: string): Promise<boolean> {
       .from('operators')
       .select('id')
       .eq('user_id', userId)
-      .maybeSingle() as any
+      .maybeSingle()
   );
   
   return !!data;
@@ -140,24 +172,27 @@ export async function checkUserHasOperator(userId: string): Promise<boolean> {
 /**
  * Function to get a user's profile
  */
-export async function getUserProfile(userId: string) {
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   return await safeQueryFunction(() => 
     supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single() as any
+      .single()
   );
 }
 
 /**
  * Function to update a user's profile
  */
-export async function updateUserProfile(userId: string, profileData: any) {
+export async function updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<any> {
+  // Ensure id is included
+  const dataWithId = { ...profileData, id: userId };
+  
   return await safeQueryFunction(() => 
     supabase
       .from('profiles')
-      .update(profileData)
-      .eq('id', userId) as any
+      .update(dataWithId)
+      .eq('id', userId)
   );
 }

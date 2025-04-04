@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/database';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
@@ -9,12 +9,33 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { MapPin, Tag, Info, Clock, DollarSign, UserCheck, ArrowLeft, Landmark } from 'lucide-react'; // Add relevant icons
+import { MapPin, Tag, Info, Clock, DollarSign, UserCheck, ArrowLeft, Landmark } from 'lucide-react';
+
+// Define POI interface to avoid Tables namespace issues
+interface PointOfInterest {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  featured?: boolean;
+  guide_required?: boolean;
+  access_notes?: string;
+  entrance_fee?: string;
+  best_visit_time?: string;
+  history?: string;
+  significance?: string;
+  images?: string[];
+  image_urls?: string[];
+  created_at: string;
+  updated_at: string;
+}
 
 const PoiDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // Get POI ID from URL
+  const { id } = useParams<{ id: string }>();
 
-  const [poi, setPoi] = useState<Tables<'points_of_interest'> | null>(null);
+  const [poi, setPoi] = useState<PointOfInterest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,19 +51,16 @@ const PoiDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch POI data using 'as any' to bypass table name type check issue
         const { data, error: dbError } = await supabase
-          .from('points_of_interest' as any) // Re-adding workaround for persistent type issue
-          .select('*') // Select all columns for detail view
-          .eq('id', id) // Match the ID from the URL
-          .single(); // Expecting only one POI
+          .from('points_of_interest')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-        // Check for error *before* asserting type
         if (dbError) throw dbError;
         if (!data) throw new Error("Point of Interest not found.");
 
-        // Use explicit assertion as type inference seems unreliable here
-        setPoi(data as Tables<'points_of_interest'>);
+        setPoi(data as PointOfInterest);
       } catch (err: any) {
         console.error("Error fetching POI details:", err);
         setError(err.message || "Failed to load Point of Interest details.");
@@ -144,9 +162,6 @@ const PoiDetailPage: React.FC = () => {
                     <p>{poi.history || poi.significance}</p>
                 </div>
             )}
-
-             {/* TODO: Add Gallery Section if multiple images in image_urls/images */}
-
           </div>
 
           {/* Right Column: Practical Info Card */}

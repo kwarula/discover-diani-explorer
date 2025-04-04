@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { FlaggedContent } from './types';
+import { FlaggedContent, ModerationStatus } from './types';
 
 /**
  * Fetch all flagged content from Supabase
@@ -16,14 +16,13 @@ export const fetchFlaggedContent = async (): Promise<FlaggedContent[]> => {
     throw new Error(error.message || 'Failed to fetch flagged content');
   }
   
-  // Make sure to include the reported_by_email field in the results
   return data as FlaggedContent[];
 };
 
 /**
  * Update the status of a flagged item
  */
-export const updateFlagStatus = async (id: string, status: string): Promise<void> => {
+export const updateFlagStatus = async (id: string, status: ModerationStatus): Promise<void> => {
   const { error } = await supabase
     .from('flagged_content')
     .update({ status })
@@ -46,7 +45,7 @@ export const removeContent = async (
   // In a real implementation, you would also delete the actual content
   const { error } = await supabase
     .from('flagged_content')
-    .update({ status: 'Resolved' })
+    .update({ status: 'Resolved' as ModerationStatus })
     .eq('id', flagId);
     
   if (error) {
