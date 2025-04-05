@@ -341,6 +341,7 @@ export type Database = {
           id: string
           interests: string[] | null
           is_tourist: boolean | null
+          role: Database["public"]["Enums"]["user_role"]
           stay_duration: number | null
           updated_at: string
           username: string | null
@@ -354,6 +355,7 @@ export type Database = {
           id: string
           interests?: string[] | null
           is_tourist?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           stay_duration?: number | null
           updated_at?: string
           username?: string | null
@@ -367,6 +369,7 @@ export type Database = {
           id?: string
           interests?: string[] | null
           is_tourist?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"]
           stay_duration?: number | null
           updated_at?: string
           username?: string | null
@@ -431,6 +434,7 @@ export type Database = {
     Enums: {
       flagged_content_type: "Review" | "Comment" | "Listing" | "OperatorProfile"
       moderation_status: "Pending" | "Resolved" | "Dismissed"
+      user_role: "user" | "admin" | "moderator"
     }
     CompositeTypes: {
       [_ in never]: never
