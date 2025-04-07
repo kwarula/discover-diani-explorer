@@ -47,7 +47,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, className = "" }) =
   return (
     <Carousel
       className={`relative rounded-lg overflow-hidden ${className}`}
-      onSelect={(index) => setCurrentIndex(index)}
+      // Fix: Change the onSelect handler to extract the index properly
+      onSelect={(index: number) => setCurrentIndex(index)}
     >
       <CarouselContent>
         {images.map((image, index) => (

@@ -1,7 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
-import { createRoot } from 'react-dom/client';
 import { InfoWindowF } from '@react-google-maps/api';
 import { InfoWindowState } from '@/lib/types';
 import { usePOIs, getCategoryIcon } from '@/hooks/usePOI';
@@ -47,7 +47,7 @@ const getMarkerIcon = (category: string) => {
 
 const PointsOfInterest = () => {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
   });
   const { data: pois, isLoading, error } = usePOIs();
   const navigate = useNavigate();
@@ -83,7 +83,8 @@ const PointsOfInterest = () => {
   };
 
   if (loadError) return <div>Error loading maps</div>;
-  if (error) return <div>Error fetching POIs: {error}</div>;
+  // Fix: Convert error object to string to make it a valid React node
+  if (error) return <div>Error fetching POIs: {error.toString()}</div>;
 
   const renderMap = () => {
     return (
