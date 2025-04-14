@@ -92,7 +92,7 @@ const Market = () => {
     }
     return items.map((item) => (
       // Use Link to wrap the card for navigation (adjust props later)
-      <Link to={`/market/listing/${item.id}`} key={item.id} className="block"> 
+      <Link to={`/listing/${item.id}`} key={item.id} className="block"> 
          <MarketCard item={item} type={item.category || 'unknown'} /> 
       </Link>
     ));

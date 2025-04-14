@@ -6,23 +6,30 @@ import usePois from '@/hooks/usePois'; // Import usePois
 import { Waves, Calendar, Compass, Map, Edit2, PlusCircle, AlertCircle, Loader2 } from 'lucide-react'; // Added icons
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Profile, PointOfInterest } from '@/types/database'; // Added PointOfInterest
+import { Tables } from '@/types/database'; // Import Tables type
 
 interface TripOverviewProps {
-  profile: Profile | null;
+  profile: Tables<'profiles'> | null; // Use Tables<'profiles'>
 }
 
 const TripOverview = ({ profile }: TripOverviewProps) => {
+  // Get current time for POI filtering
+  const nowForHook = new Date();
+  const currentTimeForPoiHook = nowForHook.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); // HH:MM:SS format
+
   // Safely access the hook data with proper loading and error handling
   const { tideData, loading: tideLoading, error: tideError } = useTideData();
-  const { pois, loading: poisLoading, error: poisError } = usePois(); // Use the hook
+  // Pass currentTime to usePois to use the RPC function
+  const { pois, loading: poisLoading, error: poisError } = usePois({ currentTime: currentTimeForPoiHook });
 
   const getCurrentTideState = () => {
+    // Use the same 'now' timestamp for consistency if needed, or keep separate
+    const now = Date.now(); // Keep this one
     if (!tideData || tideData.length < 2) return null;
-    
-    const now = Date.now();
+
+    // const now = Date.now(); // Remove duplicate declaration
     const sortedTides = [...tideData].sort((a, b) => a.timestamp - b.timestamp);
-    
+
     for (let i = 0; i < sortedTides.length - 1; i++) {
       if (now >= sortedTides[i].timestamp && now < sortedTides[i + 1].timestamp) {
         return {
@@ -147,7 +154,7 @@ const TripOverview = ({ profile }: TripOverviewProps) => {
                  </div>
                ) : pois && pois.length > 0 ? (
                  // Display first 2 POIs as simple links for now
-                 pois.slice(0, 2).map((poi: PointOfInterest) => (
+                 pois.slice(0, 2).map((poi: Tables<'points_of_interest'>) => ( // Use Tables<'points_of_interest'>
                    <Link key={poi.id} to={`/poi/${poi.id}`} className="block hover:text-ocean-dark group">
                      <p className="font-medium group-hover:underline">{poi.name}</p>
                      <p className="text-xs text-gray-500">{poi.category}</p>

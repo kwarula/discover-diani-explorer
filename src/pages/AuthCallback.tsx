@@ -19,52 +19,99 @@ const AuthCallback = () => {
           throw new Error(errorDescription);
         }
 
-        // Handle email confirmation
-        // When user clicks the email confirmation link, Supabase redirects to this page with #access_token in URL
-        if (window.location.hash) {
-          const { data, error } = await supabase.auth.getSession();
+        // First fetch the current session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw sessionError;
+        }
+        
+        // If we have a valid session, proceed
+        if (sessionData?.session) {
+          setMessage('Authentication successful! Retrieving profile...');
           
-          if (error) {
-            throw error;
+          // Give a small delay for the session to be properly established
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Try to fetch the user's profile
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', sessionData.session.user.id)
+              .single();
+              
+            // If profile doesn't exist, try to create it
+            if (profileError && profileError.code === 'PGRST116') { // Not found
+              const { error: createError } = await supabase
+                .from('profiles')
+                .insert([{ 
+                  id: sessionData.session.user.id,
+                  full_name: sessionData.session.user.user_metadata?.full_name || 
+                            sessionData.session.user.user_metadata?.name || 'User',
+                  role: 'user',
+                  status: 'active'
+                }]);
+                
+              if (createError) {
+                console.warn('Could not create profile on callback:', createError);
+                // Continue even if profile creation fails - we'll try again later
+              } else {
+                console.log('Profile created successfully on callback');
+              }
+            } else if (profileData) {
+              console.log('Profile found:', profileData);
+            }
+          } catch (profileCheckError) {
+            console.warn('Error checking/creating profile:', profileCheckError);
+            // Continue even if this fails
           }
           
-          if (data?.session) {
-            setMessage('Authentication successful! Redirecting...');
+          setMessage('Authentication successful! Redirecting...');
+          
+          // Email confirmation case
+          if (window.location.hash && window.location.hash.includes('access_token')) {
             toast.success('Email confirmed successfully');
-            
-            // Redirect to dashboard after successful confirmation
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 2000);
+          } else {
+            toast.success('Signed in successfully');
           }
+          
+          // Redirect to dashboard after successful authentication
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
         } else {
-          // Handle OAuth redirects
+          // No session found, but no error - could be a code exchange in progress
+          // Check if we have a code parameter for OAuth
           const code = searchParams.get('code');
           
           if (code) {
-            setMessage('Completing authentication...');
+            setMessage('Authorization code received, completing sign-in...');
             
-            // The exchange is handled automatically by Supabase Auth client
-            const { data, error } = await supabase.auth.getSession();
+            // Try a brief wait and check session again in case the exchange is still being processed
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
-            if (error) {
-              throw error;
+            const { data: refreshedSessionData, error: refreshedSessionError } = 
+              await supabase.auth.getSession();
+            
+            if (refreshedSessionError) {
+              throw refreshedSessionError;
             }
             
-            if (data?.session) {
+            if (refreshedSessionData?.session) {
               setMessage('Authentication successful! Redirecting...');
               toast.success('Signed in successfully');
               
               // Redirect to dashboard after successful login
               setTimeout(() => {
                 navigate('/dashboard');
-              }, 2000);
+              }, 1500);
             } else {
-              throw new Error('No session found');
+              throw new Error('No session established after code exchange');
             }
           } else {
-            // No code or access_token found
-            setMessage('Returning to application...');
+            // No code or hash found
+            setMessage('No authentication data found. Returning to application...');
             
             // Redirect to home page if no auth info found
             setTimeout(() => {

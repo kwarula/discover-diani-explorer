@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -6,6 +6,8 @@ import { HeroSearch } from "@/components/search";
 
 const Hero = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLIFrameElement>(null);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -14,8 +16,24 @@ const Hero = () => {
     
     window.addEventListener('scroll', handleScroll);
     
+    // Check if video loaded properly
+    const timer = setTimeout(() => {
+      if (videoRef.current) {
+        try {
+          // Simple check to see if contentWindow is accessible
+          // If not, it might indicate a loading issue
+          if (!videoRef.current.contentWindow) {
+            setVideoFailed(true);
+          }
+        } catch (error) {
+          setVideoFailed(true);
+        }
+      }
+    }, 5000);
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -27,22 +45,25 @@ const Hero = () => {
         style={{ transform: `translateY(${scrollPosition * 0.2}px)` }}
       >
         <div className="relative w-full h-full overflow-hidden">
-          <iframe 
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] min-w-[100%] min-h-[100%] object-cover"
-            src="https://www.youtube.com/embed/tDkyN-TnXJI?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=tDkyN-TnXJI"
-            title="Diani Beach Video"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
+          {!videoFailed ? (
+            <iframe 
+              ref={videoRef}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300%] h-[300%] min-w-[100%] min-h-[100%] object-cover"
+              src="https://www.youtube.com/embed/tDkyN-TnXJI?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&iv_load_policy=3&playlist=tDkyN-TnXJI&enablejsapi=1"
+              title="Diani Beach Video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onError={() => setVideoFailed(true)}
+            ></iframe>
+          ) : (
+            <img 
+              src="https://images.unsplash.com/photo-1606046604972-77cc76aee944?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1935&q=80" 
+              alt="Diani Beach" 
+              className="w-full h-full object-cover" 
+            />
+          )}
         </div>
-
-        {/* Fallback image in case video doesn't load */}
-        <img 
-          src="https://images.unsplash.com/photo-1606046604972-77cc76aee944?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1935&q=80" 
-          alt="Diani Beach" 
-          className="hidden w-full h-full object-cover" 
-        />
       </div>
       
       {/* Gradient overlay - more modern and vibrant */}

@@ -153,8 +153,24 @@ const ProfileSettings = () => {
       toast.success('Avatar updated successfully');
       setAvatarFile(null);
     } catch (error: any) {
-      console.error('Error uploading avatar:', error);
-      toast.error(error.message || 'Error uploading avatar');
+      // Log the full error object for detailed debugging in the console
+      console.error('Detailed error uploading avatar:', error); 
+      
+      // Attempt to provide a more specific error message to the user
+      let errorMessage = 'Error uploading avatar. Please try again.';
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = `Error: ${error.message}`;
+        }
+        // Add checks for common Supabase storage error properties
+        if ('details' in error && typeof error.details === 'string') {
+          errorMessage += ` Details: ${error.details}`;
+        }
+        if ('hint' in error && typeof error.hint === 'string') {
+           errorMessage += ` Hint: ${error.hint}`;
+        }
+      }
+      toast.error(errorMessage);
     } finally {
       setUploadingAvatar(false);
     }

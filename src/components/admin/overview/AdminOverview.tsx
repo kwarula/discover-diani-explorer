@@ -17,12 +17,12 @@ const isLoading = false; // Set to true while fetching data
 
 const AdminOverview: React.FC = () => {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Dashboard Overview</h1>
+    <div className="space-y-8"> {/* Increased spacing */}
+      {/* Removed the h1 title, as it's now in the header */}
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"> {/* Increased gap */}
+        <Card className="border border-border/50"> {/* Added subtle border */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Operators</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -41,7 +41,7 @@ const AdminOverview: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-border/50"> {/* Added subtle border */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Listings</CardTitle>
             <ListChecks className="h-4 w-4 text-muted-foreground" />
@@ -60,7 +60,7 @@ const AdminOverview: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-border/50"> {/* Added subtle border */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Flagged Content</CardTitle>
             <ShieldAlert className="h-4 w-4 text-muted-foreground" />
@@ -79,7 +79,7 @@ const AdminOverview: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-border/50"> {/* Added subtle border */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
             <UserCheck className="h-4 w-4 text-muted-foreground" />
@@ -94,7 +94,7 @@ const AdminOverview: React.FC = () => {
           </CardContent>
         </Card>
 
-         <Card>
+         <Card className="border border-border/50"> {/* Added subtle border */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Verified Operators</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />

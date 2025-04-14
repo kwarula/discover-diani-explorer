@@ -55,6 +55,7 @@ import {
 import { Input } from '@/components/ui/input'; // For Edit Sheet
 import { Textarea } from '@/components/ui/textarea'; // For Edit Sheet
 import type { Database } from '@/types/database'; // Import Database type
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 // Listing type is now defined and exported from ./types.ts
 
@@ -222,10 +223,16 @@ const AdminListingManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Listing Management</h1>
+      {/* Removed h1 title */}
 
-      {/* Filters */}
-       <div className="flex items-center py-4 gap-2">
+      <Card className="border border-border/50"> {/* Wrap content in a Card */}
+        <CardHeader>
+          <CardTitle>Manage Listings</CardTitle>
+          {/* Optional: Add description here */}
+        </CardHeader>
+        <CardContent className="space-y-4"> {/* Add spacing inside card content */}
+          {/* Filters */}
+          <div className="flex items-center gap-2"> {/* Removed py-4 */}
           {/* Category Filter */}
           <Select
             value={(isLoading || isError) ? '' : (listingsTable.getColumn('category')?.getFilterValue() as string) ?? 'all'}
@@ -297,8 +304,10 @@ const AdminListingManagement: React.FC = () => {
       ) : (
         <DataTable columns={memoizedColumns} table={listingsTable} />
       )}
+        </CardContent>
+      </Card>
 
-      {/* Action Dialogs */}
+      {/* Action Dialogs (remain outside the card) */}
       <AlertDialog
         open={dialogState.isOpen && ['approve', 'reject', 'feature', 'unfeature', 'unpublish', 'republish'].includes(dialogState.actionType || '')}
         onOpenChange={(open) => { if (!open) setDialogState({ isOpen: false, listingId: null, listingTitle: null, actionType: null }); }}

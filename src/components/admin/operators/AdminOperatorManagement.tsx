@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select"; // Import Select for filtering
 import { PlusCircle } from 'lucide-react'; // Icon for Add button
 import AddOperatorForm from './AddOperatorForm'; // Import the new form component (will create next)
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 // Operator type is now defined and exported from ./types.ts
 
@@ -239,11 +240,16 @@ const AdminOperatorManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Operator Management</h1>
+      {/* Removed h1 title */}
 
-      {/* DataTable component integration with loading/error states */}
-      {/* Add Filter Controls */}
-       <div className="flex justify-between items-center py-4 gap-2">
+      <Card className="border border-border/50"> {/* Wrap content in a Card */}
+        <CardHeader>
+          <CardTitle>Manage Operators</CardTitle>
+          {/* Optional: Add description here */}
+        </CardHeader>
+        <CardContent className="space-y-4"> {/* Add spacing inside card content */}
+          {/* Filters and Add Button */}
+          <div className="flex justify-between items-center gap-2"> {/* Removed py-4 */}
          {/* Filter Controls */}
          <div className="flex items-center gap-2">
             {/* Business Name Filter is handled inside DataTable */}
@@ -316,8 +322,10 @@ const AdminOperatorManagement: React.FC = () => {
         // Data Loaded State - Pass table instance
         <DataTable columns={memoizedColumns} table={operatorsTable} />
       )}
+        </CardContent>
+      </Card>
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog (remain outside the card) */}
       <AlertDialog
         open={dialogState.isOpen && dialogState.actionType === 'approve'}
         onOpenChange={(open) => {

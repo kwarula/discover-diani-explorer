@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Review } from '@/types/database';
+// Import ReviewWithProfile from the detail page (or move type definition to a shared location)
+import { ReviewWithProfile } from '@/pages/ListingDetailPage'; 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, CheckCircle } from 'lucide-react'; // Icons
-import { formatDistanceToNow } from 'date-fns'; // For relative time formatting
+import { Star, CheckCircle, User } from 'lucide-react'; // Add User icon
+import { formatDistanceToNow } from 'date-fns'; 
 
 interface ReviewListProps {
-  reviews: Review[]; // Use Review type directly
+  reviews: ReviewWithProfile[]; // Use ReviewWithProfile type
   isLoading: boolean;
   error?: string | null;
 }
@@ -39,17 +40,19 @@ const ReviewList: React.FC<ReviewListProps> = ({ reviews, isLoading, error }) =>
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold border-b pb-2">Reviews ({reviews.length})</h3>
+      {/* Removed redundant title, assuming parent component provides it */}
       {reviews.map((review) => {
-        // Display User ID for now as profile data is not joined
-        const reviewerName = `User ID: ...${review.user_id.slice(-6)}`; // Show partial user ID
-        const fallbackName = 'U'; // Simple fallback
+        // Use profile data if available
+        const reviewerName = review.profiles?.username || 'Anonymous';
+        const reviewerAvatar = review.profiles?.avatar_url;
+        // Generate fallback from username or default to 'A'
+        const fallbackName = reviewerName ? reviewerName.charAt(0).toUpperCase() : 'A'; 
         const timeAgo = review.created_at ? formatDistanceToNow(new Date(review.created_at), { addSuffix: true }) : '';
 
         return (
           <div key={review.id} className="flex space-x-4 border-b pb-4 last:border-b-0 last:pb-0">
             <Avatar className="h-10 w-10">
-              {/* <AvatarImage src={reviewerAvatar} alt={reviewerName} /> */}
+              <AvatarImage src={reviewerAvatar || undefined} alt={reviewerName} />
               <AvatarFallback>{fallbackName}</AvatarFallback>
             </Avatar>
             <div className="flex-1 space-y-1">

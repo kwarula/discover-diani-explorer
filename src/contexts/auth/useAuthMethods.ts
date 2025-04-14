@@ -78,7 +78,14 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
 
       // Create the user profile if we have a user
       if (data.user) {
-        await createUserProfile(data.user.id, userData);
+        try {
+          await createUserProfile(data.user.id, userData);
+        } catch (profileError: any) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw here - we've created the auth user, but profile failed
+          // Show toast but continue with account creation
+          toast.error(`Note: Your account was created but there was an issue with your profile: ${profileError.message}`);
+        }
       }
 
       if (data?.user?.identities?.length === 0) {
@@ -97,6 +104,9 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
           errorMessage = 'This email is already registered';
         } else if (error.message.includes('password')) {
           errorMessage = error.message; // Keep password-specific errors
+        } else if (error.message.includes('Database error saving')) {
+          errorMessage = 'Database error. Please try again or contact support.';
+          console.error('Database error details:', error);
         } else {
           errorMessage = error.message;
         }
@@ -112,18 +122,65 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
   const signOut = async () => {
     try {
       setIsSigningOut(true);
-      const { error } = await supabase.auth.signOut();
+      
+      // Clear profile state first
+      setProfile(null);
+      
+      // Sometimes the signOut can hang, so we'll add a timeout
+      const signOutPromise = supabase.auth.signOut();
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Sign out operation timed out'));
+        }, 5000); // 5 second timeout
+      });
+      
+      // Race between the actual signOut and the timeout
+      const { error } = await Promise.race([
+        signOutPromise,
+        timeoutPromise
+      ]) as any;
       
       if (error) {
         throw error;
       }
       
-      // Clear profile state when user signs out
-      setProfile(null);
+      // Force clear any potential stuck auth state in localStorage
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes('supabase') || key?.includes('sb-') || key?.includes('discover-diani-auth-token')) {
+            keysToRemove.push(key);
+          }
+        }
+        
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+        });
+      } catch (e) {
+        console.warn('Error clearing localStorage during signOut:', e);
+      }
+      
       toast.success('Successfully signed out');
+      
+      // Force page reload to ensure all state is cleared
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast.error(error.message || 'An error occurred while signing out');
-      throw error;
+      
+      // Even if there's an error, try to force signout by clearing storage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/';
+      } catch (e) {
+        console.error('Failed to force sign out:', e);
+      }
     } finally {
       setIsSigningOut(false);
     }
@@ -215,21 +272,53 @@ export const useAuthMethods = (setProfile: React.Dispatch<React.SetStateAction<P
         status: 'active' as const, // Default status is 'active'
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .insert(profileData);
+      // First try with just the essential fields to avoid any schema issues
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            full_name: userData.full_name,
+            role: 'user',
+            status: 'active'
+          }]);
 
-      if (error) {
-        console.error('Supabase insert error:', error);
-        
-        // Provide more specific error messages
-        if (error.code === '23505') { // Unique violation
-          console.warn('Profile already exists for this user, skipping creation');
-          return; // Not throwing, as this might be a retry scenario
-        } else if (error.code === '23503') { // Foreign key violation
-          throw new Error('Authentication error: User does not exist in auth system');
-        } else {
-          throw error;
+        if (!error) {
+          console.log('Basic profile created successfully');
+          return;
+        }
+
+        // If basic profile fails, try with complete data
+        if (error) {
+          console.log('Basic profile creation failed, trying with full data');
+          
+          const { error: fullError } = await supabase
+            .from('profiles')
+            .insert([profileData]);
+
+          if (fullError) {
+            console.error('Supabase insert error:', fullError);
+            
+            // Provide more specific error messages
+            if (fullError.code === '23505') { // Unique violation
+              console.warn('Profile already exists for this user, skipping creation');
+              return; // Not throwing, as this might be a retry scenario
+            } else if (fullError.code === '23503') { // Foreign key violation
+              throw new Error('Authentication error: User does not exist in auth system');
+            } else {
+              throw fullError;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('First attempt profile creation error:', error);
+        // Try with minimal data as last resort
+        const { error: minimalError } = await supabase
+          .from('profiles')
+          .insert([{ id: userId }]);
+          
+        if (minimalError) {
+          throw minimalError;
         }
       }
     } catch (error: any) {

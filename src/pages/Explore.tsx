@@ -1,91 +1,166 @@
 
-import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
+import React, { useState, useMemo, useEffect, useCallback } from 'react'; // Added useCallback
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Star, Compass, Sun, Waves, Anchor, Landmark, Loader2 } from "lucide-react"; // Added Landmark, Loader2
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-import { Listing, PointOfInterest } from '@/types/database'; // Updated import
-import PoiCard from '@/components/poi/PoiCard'; // Added
-import { useListings } from '@/hooks/useListings'; // Added useListings hook
-import usePois from '@/hooks/usePois'; // Corrected default import for usePois hook
-import { Checkbox } from "@/components/ui/checkbox"; // Added
-import { Label } from "@/components/ui/label"; // Added
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Added
-import { Link } from 'react-router-dom'; // Added Link for cards
+import { MapPin, Star, Compass, Sun, Waves, Anchor, Landmark, Loader2 } from "lucide-react";
+// Corrected imports: Added Marker back, added Libraries type
+import { GoogleMap, InfoWindow, Libraries } from '@react-google-maps/api'; // Removed useJsApiLoader
+import { Tables } from '@/types/database';
+import PoiCard from '@/components/poi/PoiCard';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext'; // Import the context hook
+import { useListings } from '@/hooks/useListings';
+import usePois from '@/hooks/usePois';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link, useSearchParams } from 'react-router-dom'; // Added useSearchParams and Link
 
 const MAP_CONTAINER_STYLE = { height: '100%', width: '100%' };
 // Fix: Access environment variable correctly
-const GOOGLE_MAPS_API_KEY = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
+const GOOGLE_MAPS_API_KEY = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || '';
 const defaultCenter = { lat: -4.2833, lng: 39.5833 }; // Diani Beach center
 
-// --- Remove Static Sample Data ---
-
 const ExplorePage = () => {
-  const [activeTab, setActiveTab] = useState('beaches'); // Default tab
-  const [selectedMarker, setSelectedMarker] = useState<any>(null); // State for InfoWindow
+  // Remove mapLibraries definition
 
-  // State for filters
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState('beaches');
+  const [selectedPoi, setSelectedPoi] = useState<Tables<'points_of_interest'> | null>(null);
+
+  // Consume the context hook
+  const { isLoaded, loadError } = useGoogleMaps();
+
+  // Read search parameters from URL
+  const urlQuery = searchParams.get('q');
+  const urlCategory = searchParams.get('category');
+  const urlLocation = searchParams.get('location');
+
+  // State for UI filters (can be used to update searchParams in the future)
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // Keep category filter for listings
+  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory || 'all');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [selectedTide, setSelectedTide] = useState<string>('all');
 
-  // Fetch data using hooks
-  // Fetch all listings initially, filtering will happen client-side based on category state
-  const { data: listingsData, isLoading: listingsLoading, error: listingsError } = useListings(null, 100); // Fetch more listings
-  const { pois, loading: poisLoading, error: poisError } = usePois();
+  // Fetch data using hooks, passing URL parameters
+  const { data: listingsData, isLoading: listingsLoading, error: listingsError } = useListings({
+    searchQuery: urlQuery,
+    category: urlCategory, // Pass category from URL
+    location: urlLocation,
+    limit: 100, // Fetch more listings for search results
+  });
+  const { pois, loading: poisLoading, error: poisError } = usePois({
+    searchQuery: urlQuery,
+    category: urlCategory, // Pass category from URL
+    location: urlLocation,
+  });
 
   // Combine loading states and errors
   const loading = listingsLoading || poisLoading;
-  const error = listingsError?.message || poisError; // Combine error messages
+  const error = listingsError?.message || poisError;
 
-  // Filtered data based on state
-  const filteredListings = useMemo(() => {
-    // Ensure listingsData is not null or undefined before filtering
-    const currentListings = listingsData || [];
-    return currentListings.filter(listing => {
-      if (showVerifiedOnly && !listing.is_verified) return false;
-      // Filter by selected tab category (client-side)
-      if (activeTab !== 'all' && activeTab !== 'poi' && listing.category?.toLowerCase() !== activeTab.toLowerCase()) return false;
-      // Apply other filters
-      if (selectedCategory !== 'all' && listing.category !== selectedCategory) return false; // This might be redundant if using tabs
-      if (selectedPriceRange !== 'all' && listing.price_range !== selectedPriceRange) return false;
-      if (selectedTide !== 'all' && listing.tide_dependency !== selectedTide) return false;
-      return true;
-    });
-    // Update dependencies: include activeTab if filtering by it
-  }, [listingsData, showVerifiedOnly, activeTab, selectedCategory, selectedPriceRange, selectedTide]);
-
-  const filteredPois = useMemo(() => {
-    // Add POI filtering if needed (e.g., by category)
-    // Example: filter by selectedCategory if it applies to POIs
-    // if (selectedCategory !== 'all' && poi.category !== selectedCategory) return false;
-    return pois || []; // Return empty array if pois is null/undefined
-  }, [pois]); // Add dependencies if filtering POIs
-
-  // Data for the map (currently only POIs due to missing listing coords)
+  // Data for the map (using fetched POIs directly)
   const mapLocations = useMemo(() => {
-    return filteredPois
-      .filter(poi => poi.latitude && poi.longitude) // Ensure coords exist
+    return (pois || []) // Use fetched pois directly
+      .filter(poi => poi.latitude && poi.longitude)
       .map(poi => ({
-        id: `poi-${poi.id}`, // Use the correct id type (string)
-        title: poi.name, // Use name field
-        description: poi.description || '', // Use description field
-        coords: { lat: poi.latitude!, lng: poi.longitude! }, // Use latitude/longitude fields
-        type: 'poi'
+        id: `poi-${poi.id}`,
+        title: poi.name,
+        description: poi.description || '',
+        coords: { lat: poi.latitude!, lng: poi.longitude! },
+        type: 'poi',
+        // Include the full POI object for the InfoWindow
+        poiData: poi
       }));
-    // TODO: Add filteredListings to mapLocations if/when coordinate data is available
-  }, [filteredPois]);
+    // TODO: Add listings to mapLocations if/when coordinate data is available
+  }, [pois]);
+
+  // Set active tab based on URL category on initial load
+  useEffect(() => {
+    if (urlCategory && urlCategory !== 'all') {
+      // Map URL category to tab value if necessary
+      const tabValue = urlCategory.toLowerCase(); // Assuming direct mapping for now
+      // Check if tabValue is a valid tab trigger value before setting
+      const validTabs = ['beaches', 'activities', 'attractions', 'dining', 'poi'];
+      if (validTabs.includes(tabValue)) {
+        setActiveTab(tabValue);
+      } else {
+        setActiveTab('beaches'); // Default if category doesn't match a tab
+      }
+    } else if (!urlCategory && urlQuery) {
+       // If there's a query but no category, maybe default to 'all' or a relevant tab?
+       // For now, keep the default 'beaches' or let the user change it.
+    }
+  }, [urlCategory, urlQuery]);
+
+  // Map instance state and callbacks (moved outside renderMap)
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const onLoad = useCallback((mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+  }, []);
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  // Handle map loading state and errors
+  const renderMap = useCallback(() => {
+    if (loadError) {
+      console.error("Google Maps API load error:", loadError);
+      return <div className="text-center text-red-600 p-4">Error loading map. Please check the API key and network connection.</div>;
+    }
+    if (!isLoaded) {
+      return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-ocean-light" /></div>;
+    }
+
+    return (
+      <GoogleMap
+        mapContainerStyle={MAP_CONTAINER_STYLE}
+        center={defaultCenter}
+        zoom={13}
+        onLoad={onLoad} // Get map instance
+        onUnmount={onUnmount} // Clean up map instance
+      >
+        {/* Render markers using the new AdvancedPoiMarker component */}
+        {map && mapLocations.map((location) => ( // Ensure map is loaded before rendering markers
+          <AdvancedPoiMarker
+            key={location.id}
+            map={map}
+            position={location.coords}
+            title={location.title}
+            poiData={location.poiData}
+            onClick={setSelectedPoi}
+          />
+        ))}
+
+        {selectedPoi && selectedPoi.latitude && selectedPoi.longitude && (
+          <InfoWindow
+            position={{ lat: selectedPoi.latitude, lng: selectedPoi.longitude }}
+            onCloseClick={() => setSelectedPoi(null)}
+            // pixelOffset={new window.google.maps.Size(0, -30)} // Adjust offset if needed
+          >
+            <div className="p-1 max-w-xs">
+              <h4 className="font-bold text-md mb-1">{selectedPoi.name}</h4>
+              <p className="text-sm text-gray-600 line-clamp-3">{selectedPoi.description}</p>
+              <Link to={`/poi/${selectedPoi.id}`}>
+                <Button size="sm" variant="link" className="p-0 h-auto mt-1 text-coral">
+                  View Details
+                </Button>
+              </Link>
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+    );
+    // Corrected dependencies for renderMap
+  }, [isLoaded, loadError, mapLocations, selectedPoi, map, onLoad, onUnmount]);
+
 
   if (!GOOGLE_MAPS_API_KEY) {
       return <div className="text-red-600 p-4">Error: Google Maps API Key is missing. Please configure VITE_GOOGLE_MAPS_API_KEY in your .env file.</div>;
   }
-
-  // No longer need getListingsByCategory as filtering happens in useMemo based on activeTab
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -201,16 +276,17 @@ const ExplorePage = () => {
             )}
             {error && <p className="text-center text-red-600 py-20">{error}</p>}
 
-            {/* Tabs Content */}
-            {/* Tabs Content - Now directly use filteredListings */}
+            {/* Tabs Content - Use fetched data directly */}
             {!loading && !error && (
               <>
-                <TabsContent value="beaches" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
-                <TabsContent value="activities" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
-                <TabsContent value="attractions" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
-                <TabsContent value="dining" className="mt-6"> <ListingGrid listings={filteredListings} /> </TabsContent>
-                <TabsContent value="poi" className="mt-6"> <PoiGrid pois={filteredPois} /> </TabsContent>
-                {/* Add Accommodation Content similarly */}
+                {/* Pass listingsData directly, filtering is done server-side */}
+                <TabsContent value="beaches" className="mt-6"> <ListingGrid listings={listingsData || []} /> </TabsContent>
+                <TabsContent value="activities" className="mt-6"> <ListingGrid listings={listingsData || []} /> </TabsContent>
+                <TabsContent value="attractions" className="mt-6"> <ListingGrid listings={listingsData || []} /> </TabsContent>
+                <TabsContent value="dining" className="mt-6"> <ListingGrid listings={listingsData || []} /> </TabsContent>
+                {/* Pass pois directly */}
+                <TabsContent value="poi" className="mt-6"> <PoiGrid pois={pois || []} /> </TabsContent>
+                {/* Add Accommodation Content similarly if needed */}
               </>
             )}
           </Tabs>
@@ -229,41 +305,9 @@ const ExplorePage = () => {
             </p>
           </div>
 
+          {/* Render map using the callback */}
           <div className="bg-white rounded-lg shadow-lg p-1 aspect-[16/9] max-w-6xl mx-auto overflow-hidden">
-            <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-              <GoogleMap
-                mapContainerStyle={MAP_CONTAINER_STYLE}
-                center={defaultCenter}
-                zoom={13}
-              >
-                {/* Render markers only for POIs for now */}
-                {mapLocations.map((location) => (
-                  <Marker
-                    key={location.id}
-                    position={location.coords}
-                    title={location.title}
-                    onClick={() => setSelectedMarker(location)}
-                    // TODO: Add custom icons based on type (poi, listing category)
-                  />
-                ))}
-
-                {selectedMarker && (
-                  <InfoWindow
-                    position={selectedMarker.coords}
-                    onCloseClick={() => setSelectedMarker(null)}
-                  >
-                    <div className="p-1 max-w-xs">
-                      <h4 className="font-bold text-md mb-1">{selectedMarker.title}</h4>
-                      <p className="text-sm text-gray-600 line-clamp-3">{selectedMarker.description}</p>
-                       {/* TODO: Link to POI detail page or listing detail page */}
-                       <Button size="sm" variant="link" className="p-0 h-auto mt-1 text-coral">
-                         View Details
-                       </Button>
-                    </div>
-                  </InfoWindow>
-                )}
-              </GoogleMap>
-            </LoadScript>
+            {renderMap()}
           </div>
         </div>
       </section>
@@ -273,12 +317,80 @@ const ExplorePage = () => {
   );
 };
 
-// --- Refactored/New Helper Components ---
+
+// --- Advanced Marker Component ---
+interface AdvancedPoiMarkerProps {
+  map: google.maps.Map;
+  position: google.maps.LatLngLiteral;
+  title?: string;
+  poiData: Tables<'points_of_interest'>;
+  onClick: (poi: Tables<'points_of_interest'>) => void;
+}
+
+const AdvancedPoiMarker: React.FC<AdvancedPoiMarkerProps> = ({
+  map,
+  position,
+  title,
+  poiData,
+  onClick,
+}) => {
+  const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+
+  useEffect(() => {
+    if (!window.google || !window.google.maps.marker || !map) {
+      return;
+    }
+
+    // Create PinElement for customization
+    const pin = new window.google.maps.marker.PinElement({
+      background: '#FB8500', // Coral color
+      borderColor: '#0077B6', // Ocean color
+      glyphColor: '#FFFFFF',
+    });
+
+    // Create AdvancedMarkerElement instance
+    const advMarker = new window.google.maps.marker.AdvancedMarkerElement({
+      map,
+      position,
+      title,
+      content: pin.element, // Use PinElement as content
+    });
+
+    // Add click listener
+    const clickListener = advMarker.addListener('click', () => {
+      onClick(poiData);
+    });
+
+    setMarker(advMarker);
+
+    // Cleanup function
+    return () => {
+      if (advMarker) {
+        // Remove listener first
+        window.google.maps.event.removeListener(clickListener);
+        // Remove marker from map
+        advMarker.map = null;
+      }
+      setMarker(null);
+    };
+    // Dependencies: Recreate marker if map, position, title, or poiData changes
+  }, [map, position, title, poiData, onClick]);
+
+  // This component doesn't render anything itself, it just manages the Google Maps object
+  return null;
+};
+
+
+// --- Helper Components ---
 
 // Grid for displaying listings
-const ListingGrid = ({ listings }: { listings: Listing[] }) => {
+const ListingGrid = ({ listings }: { listings: Tables<'listings'>[] }) => { // Use Tables type
   if (listings.length === 0) {
-    return <p className="text-center text-gray-500 py-10">No items match the current filters in this category.</p>;
+    // Adjust message based on whether there was a search query
+    const message = useSearchParams()[0].get('q')
+      ? "No listings match your search criteria."
+      : "No listings found in this category.";
+    return <p className="text-center text-gray-500 py-10">{message}</p>;
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -290,9 +402,13 @@ const ListingGrid = ({ listings }: { listings: Listing[] }) => {
 };
 
 // Grid for displaying POIs
-const PoiGrid = ({ pois }: { pois: PointOfInterest[] }) => {
+const PoiGrid = ({ pois }: { pois: Tables<'points_of_interest'>[] }) => { // Use Tables type
    if (pois.length === 0) {
-    return <p className="text-center text-gray-500 py-10">No points of interest found.</p>;
+    // Adjust message based on whether there was a search query
+    const message = useSearchParams()[0].get('q')
+      ? "No points of interest match your search criteria."
+      : "No points of interest found in this category.";
+    return <p className="text-center text-gray-500 py-10">{message}</p>;
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -307,10 +423,12 @@ const PoiGrid = ({ pois }: { pois: PointOfInterest[] }) => {
 };
 
 
-// Refactored Location Card to work with Listing data
-const ListingCard = ({ listing }: { listing: Listing }) => {
-  // Use placeholder image if listing.images is null/empty
-  const imageUrl = listing.images?.[0] || '/placeholder.svg';
+// Listing Card Component
+const ListingCard = ({ listing }: { listing: Tables<'listings'> }) => { // Use Tables type
+  // Use placeholder image if listing.images is null/empty or not an array
+  const imageUrl = Array.isArray(listing.images) && listing.images.length > 0
+    ? listing.images[0]
+    : '/placeholder.svg';
 
   return (
     <Link to={`/listing/${listing.id}`} className="block group"> {/* Wrap card in Link */}

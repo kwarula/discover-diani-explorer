@@ -5,7 +5,7 @@ import { Resend } from 'npm:resend'; // Using npm specifier for Resend SDK
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const FROM_EMAIL = 'vince@afrotape.co.ke'; // Your verified Resend "From" address
+const FROM_EMAIL = 'info@zaidicreatorlab.com'; // Your verified Resend "From" address
 
 if (!RESEND_API_KEY) {
   console.error('Missing RESEND_API_KEY environment variable');

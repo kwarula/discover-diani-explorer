@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/auth";
+import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext"; // Import the new provider
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
@@ -27,6 +28,7 @@ import ListingDetailPage from "./pages/ListingDetailPage";
 import OperatorDetailPage from "./pages/OperatorDetailPage";
 import PoiDetailPage from "./pages/PoiDetailPage";
 import AuthCallback from "./pages/AuthCallback";
+import AuthDebugger from "./components/debug/AuthDebugger";
 
 // Import operator pages
 import OperatorLanding from "./pages/OperatorLanding";
@@ -76,9 +78,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <SpeedInsights />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
+        {/* Wrap BrowserRouter with GoogleMapsProvider */}
+        <GoogleMapsProvider> 
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -86,6 +90,9 @@ const App = () => (
             
             {/* Auth callback route for OAuth and email confirmation */}
             <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* Auth debugger/repair tool */}
+            <Route path="/auth/debug" element={<AuthDebugger />} />
             
             <Route path="/dashboard" element={
               <AuthRequired>
@@ -148,9 +155,10 @@ const App = () => (
               </Route>
             </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </GoogleMapsProvider>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Listing } from '@/types/database'; // Import Listing type directly
+import { Database, Tables } from '@/types/database'; // Import Tables type
 import { logError } from '@/utils/errorLogger';
 
 // Define the columns to select for listings
@@ -11,24 +11,47 @@ const listingColumns = `
   user_id, wildlife_notice
 `;
 
-// Function to fetch listings with optional pagination and category filtering
-export const useListings = (category: string | null = null, limit: number = 10, page: number = 1) => {
+// Function to fetch listings with optional filtering and pagination
+export const useListings = (
+  {
+    category,
+    searchQuery,
+    location,
+    limit = 10,
+    page = 1,
+  }: {
+    category?: string | null;
+    searchQuery?: string | null;
+    location?: string | null;
+    limit?: number;
+    page?: number;
+  } = {} // Default empty object
+) => {
   const fetchListings = async () => {
     // Create a timeout mechanism
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 10000); // 10 second timeout
+    }, 20000); // Increased to 20 second timeout
 
     try {
       let query = supabase
         .from('listings')
         .select(listingColumns); // Use explicit columns
 
-      if (category) {
+      // Apply filters
+      if (category && category !== 'all') { // Ignore 'all' category filter
         query = query.eq('category', category);
       }
-      
+      if (searchQuery) {
+        // Simple search on title and description. Consider FTS for better performance/relevance later.
+        query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      }
+      if (location) {
+        // Simple search on location string.
+        query = query.ilike('location', `%${location}%`);
+      }
+
       // Add pagination
       const from = (page - 1) * limit;
       const to = from + limit - 1;
@@ -48,48 +71,23 @@ export const useListings = (category: string | null = null, limit: number = 10, 
         throw error;
       }
 
-      // Re-adding assertion as type inference is unreliable here
-      return data as Listing[]; // Assert type
+      // Assert the correct type
+      return data as Tables<'listings'>[];
     } catch (error: any) {
       clearTimeout(timeoutId);
       logError(error, { 
-        context: 'useListings:fetchListings', 
-        data: { category, limit, page } 
+        context: 'useListings:fetchListings',
+        data: { category, searchQuery, location, limit, page } // Updated data for logging
       });
-      
-      // Provide fallback data in development
-      if (import.meta.env.DEV) {
-        console.warn('Using fallback listings data in development mode');
-        return [
-          {
-            id: 'fallback-1',
-            title: 'Diani Beach Tour',
-            category: 'activity',
-            description: 'Explore the beautiful Diani Beach',
-            price_range: 'medium',
-            featured: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as Listing,
-          {
-            id: 'fallback-2',
-            title: 'Seafood Restaurant',
-            category: 'service',
-            description: 'Fresh seafood daily',
-            price_range: 'medium',
-            featured: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as Listing
-        ].slice(0, limit);
-      }
-      
-      throw error;
+
+      // Removed fallback data logic
+      throw error; // Re-throw the error to be handled by react-query
     }
   };
 
   return useQuery({
-    queryKey: ['listings', category, limit, page],
+    // Update queryKey to include new filters
+    queryKey: ['listings', category, searchQuery, location, limit, page],
     queryFn: fetchListings,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2, // Retry failed requests twice
@@ -101,13 +99,13 @@ export const useListings = (category: string | null = null, limit: number = 10, 
 export const useListing = (id: string | undefined) => {
   const fetchListing = async () => {
     if (!id) return null;
-    
+
     // Create a timeout mechanism
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 10000); // 10 second timeout
-    
+    }, 20000); // Increased to 20 second timeout
+
     try {
       // Select listing columns and potentially nested reviews
       const { data, error } = await supabase
@@ -126,32 +124,17 @@ export const useListing = (id: string | undefined) => {
         throw error;
       }
 
-      // Assert type with reviews
-      return data as Listing & { reviews: any[] }; 
+      // Assert type with reviews using Tables<'reviews'>
+      return data as Tables<'listings'> & { reviews: Tables<'reviews'>[] };
     } catch (error: any) {
       clearTimeout(timeoutId);
       logError(error, { 
         context: 'useListings:fetchListing', 
-        data: { id } 
+        data: { id }
       });
-      
-      // Provide fallback data in development
-      if (import.meta.env.DEV && id === 'fallback-1') {
-        console.warn('Using fallback listing data in development mode');
-        return {
-          id: 'fallback-1',
-          title: 'Diani Beach Tour',
-          category: 'activity',
-          description: 'Explore the beautiful Diani Beach with our experienced guide.',
-          price_range: 'medium',
-          featured: true,
-          reviews: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as Listing & { reviews: any[] };
-      }
-      
-      throw error;
+
+      // Removed fallback data logic
+      throw error; // Re-throw the error to be handled by react-query
     }
   };
 

@@ -179,13 +179,46 @@ INSERT INTO public.listings (title, description, category, sub_category, locatio
     false,
     null,
     'approved'
+),
+(
+    'Tandoori International Club',
+    'Popular nightclub in Diani featuring resident DJs, themed nights, and a lively dance floor.',
+    'nightlife', -- Main category
+    'club', -- Sub-category
+    'Diani Beach Road',
+    null, -- Entry fee might apply sometimes
+    null,
+    '$$', -- Price range indicator for drinks/entry
+    ARRAY['https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80'], -- Placeholder image
+    false,
+    true, -- Assume verified for example
+    false,
+    null, -- No tide dependency
+    'approved'
+),
+(
+    'Forty Thieves Beach Bar',
+    'Iconic Diani beach bar known for its relaxed daytime vibe and lively evening parties right on the sand.',
+    'nightlife',
+    'beach_bar',
+    'Diani Beach (South)',
+    null,
+    null,
+    '$$',
+    ARRAY['https://images.unsplash.com/photo-1571846304394-c9ae85419450?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'], -- Placeholder image
+    true, -- Featured often
+    true,
+    false,
+    null,
+    'approved'
 );
 
 
 -- Seed data for points_of_interest table
 -- Using approximate coordinates and sample data
+-- Adding opening_time, closing_time, and activity_tags
 
-INSERT INTO public.points_of_interest (name, description, category, latitude, longitude, history, access_notes, guide_required, image_urls) VALUES
+INSERT INTO public.points_of_interest (name, description, category, latitude, longitude, history, access_notes, guide_required, image_urls, opening_time, closing_time, activity_tags) VALUES
 (
     'Kongo Mosque Ruins',
     'Historic ruins of one of the oldest mosques on the Kenyan coast, located near the Kongo River estuary.',
@@ -195,7 +228,10 @@ INSERT INTO public.points_of_interest (name, description, category, latitude, lo
     'Believed to date back to the 14th or 15th century, showcasing early Swahili architecture.',
     'Usually open access, sometimes local guides offer tours for a small fee. Best visited during the day.',
     false, -- Guide not strictly required but can enhance experience
-    ARRAY['https://images.unsplash.com/photo-1604880920163-1a85a64a4fd5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'] -- Placeholder image
+    ARRAY['https://images.unsplash.com/photo-1604880920163-1a85a64a4fd5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'], -- Placeholder image
+    null, -- opening_time (open access)
+    null, -- closing_time (open access)
+    ARRAY['historical', 'daytime_only'] -- activity_tags
 ),
 (
     'Colobus Conservation Center',
@@ -204,9 +240,12 @@ INSERT INTO public.points_of_interest (name, description, category, latitude, lo
     -4.2700, -- Approximate Latitude
     39.5800, -- Approximate Longitude
     'Established to protect the endangered Colobus monkeys found in the Diani area. Offers guided walks and educational programs.',
-    'Entrance fee applies, supports conservation efforts. Guided tours available.',
+    'Entrance fee applies, supports conservation efforts. Guided tours available. Typically open 8 AM - 5 PM.',
     true, -- Guided tour is the primary way to visit
-    ARRAY['https://images.unsplash.com/photo-1594128597047-ab2801b1e6bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80']
+    ARRAY['https://images.unsplash.com/photo-1594128597047-ab2801b1e6bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80'],
+    '08:00:00', -- opening_time
+    '17:00:00', -- closing_time
+    ARRAY['wildlife', 'conservation', 'daytime_only', 'guided_tour', 'entry_fee'] -- activity_tags
 ),
 (
     'Africa Pool (at low tide)',
@@ -215,9 +254,12 @@ INSERT INTO public.points_of_interest (name, description, category, latitude, lo
     -4.300, -- Very Approximate Latitude (near The Sands at Nomad)
     39.575, -- Very Approximate Longitude
     'A fascinating natural formation visible only during low spring tides.',
-    'Accessible by walking on the reef at low tide. Check tide times carefully. Wear reef shoes.',
+    'Accessible by walking on the reef at low tide. Check tide times carefully. Wear reef shoes. Only safe during daylight hours.',
     false,
-    ARRAY['https://images.unsplash.com/photo-1535262412227-85541e910204?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80'] -- Placeholder image
+    ARRAY['https://images.unsplash.com/photo-1535262412227-85541e910204?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80'], -- Placeholder image
+    null, -- opening_time (tide dependent)
+    null, -- closing_time (tide dependent)
+    ARRAY['natural_landmark', 'low_tide_dependent', 'beach_access', 'daytime_only', 'reef_walk'] -- activity_tags
 ),
 (
     'Shimba Hills National Reserve Viewpoint',
@@ -225,8 +267,11 @@ INSERT INTO public.points_of_interest (name, description, category, latitude, lo
     'Viewpoint',
     -4.245, -- Approximate Latitude within Shimba Hills
     39.425, -- Approximate Longitude within Shimba Hills
-    'Part of the Shimba Hills National Reserve, known for its coastal rainforest, elephants, and Sable antelope.',
+    'Part of the Shimba Hills National Reserve, known for its coastal rainforest, elephants, and Sable antelope. Park hours typically 6 AM - 6 PM.',
     'Accessible via park entrance (fees apply). Requires transport (4x4 recommended).',
     false, -- Guide not required for viewpoint but recommended for park drives
-    ARRAY['https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'] -- Placeholder image
+    ARRAY['https://images.unsplash.com/photo-1549366021-9f761d450615?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'], -- Placeholder image
+    '06:00:00', -- opening_time (park hours)
+    '18:00:00', -- closing_time (park hours)
+    ARRAY['viewpoint', 'wildlife_area', 'daytime_only', 'requires_transport', 'park_fee'] -- activity_tags
 );

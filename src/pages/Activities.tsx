@@ -10,8 +10,12 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from '@/integrations/supabase/client';
-import { Listing } from '@/types/database';
+// Import Database and Tables helper
+import { Database, Tables } from '@/types/database';
 import { Link } from 'react-router-dom';
+
+// Define Listing type using the Tables helper
+type Listing = Tables<'listings'>;
 
 const activityCategories = [
   { id: 'watersports', name: 'Water Sports' },
@@ -38,12 +42,13 @@ const ActivitiesPage = () => {
           id, category, created_at, description, featured, guide_recommended,
           images, is_verified, location, price, price_range, price_unit, status,
           sub_category, tide_dependency, title, transport_instructions, updated_at,
-          user_id, wildlife_notice
+          wildlife_notice
         `;
         const { data, error: dbError } = await supabase
           .from('listings')
           .select(listingsColumns)
           .eq('category', 'activity')
+          .eq('status', 'active') // Added status filter
           .order('featured', { ascending: false })
           .order('title');
 
@@ -91,10 +96,10 @@ const ActivitiesPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
-      
+
       <section className="relative pt-20 pb-16 md:py-32 bg-ocean-dark text-white">
         <div className="absolute inset-0 bg-cover bg-center opacity-20 z-0"
-          style={{ 
+          style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1596178065887-1198b6148b2b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1740&q=80')"
           }}
         />
@@ -116,7 +121,7 @@ const ActivitiesPage = () => {
           </div>
         </div>
       </section>
-      
+
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -126,7 +131,7 @@ const ActivitiesPage = () => {
                   <h2 className="text-xl font-display font-semibold">Filters</h2>
                   <Filter size={20} className="text-gray-500" />
                 </div>
-                
+
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-3">Price Range (KES)</h3>
@@ -144,7 +149,7 @@ const ActivitiesPage = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-lg font-medium mb-3">Categories</h3>
                     <div className="space-y-2">
@@ -163,7 +168,7 @@ const ActivitiesPage = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="lg:col-span-3">
               {loading && (
                 <div className="flex justify-center items-center py-20">
@@ -222,7 +227,7 @@ const ActivitiesPage = () => {
           </div>
         </div>
       </section>
-      
+
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-display font-bold text-ocean-dark mb-6">
@@ -237,7 +242,7 @@ const ActivitiesPage = () => {
           </Button>
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );

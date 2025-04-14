@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 // TODO: Import Dialog/Sheet for Add/Edit/View
 // TODO: Import Add/Edit Form component
 
@@ -112,15 +113,18 @@ const AdminPOIManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Points of Interest Management</h1>
-        <Button onClick={handleAddPOI}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add POI
-        </Button>
-      </div>
+      {/* Removed h1 title */}
 
-      {/* Filters */}
-      <div className="flex items-center py-4 gap-2">
+      <Card className="border border-border/50"> {/* Wrap content in a Card */}
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> {/* Header with title and button */}
+          <CardTitle>Manage Points of Interest</CardTitle>
+          <Button onClick={handleAddPOI} size="sm"> {/* Moved Add button here */}
+            <PlusCircle className="mr-2 h-4 w-4" /> Add POI
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4"> {/* Add spacing inside card content */}
+          {/* Filters */}
+          <div className="flex items-center gap-2"> {/* Removed py-4 */}
          {/* Category Filter */}
          <Select
            value={(isLoading || isError) ? '' : (table.getColumn('category')?.getFilterValue() as string) ?? 'all'}
@@ -176,8 +180,10 @@ const AdminPOIManagement: React.FC = () => {
       ) : (
          <DataTable columns={memoizedColumns} table={table} />
       )}
+        </CardContent>
+      </Card>
 
-      {/* TODO: Add Dialogs/Sheets for Add/Edit/View/Delete */}
+      {/* TODO: Add Dialogs/Sheets for Add/Edit/View/Delete (remain outside card) */}
 
     </div>
   );

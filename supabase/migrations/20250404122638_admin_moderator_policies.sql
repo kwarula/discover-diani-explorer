@@ -22,10 +22,12 @@ drop policy if exists "Allow authenticated read access" on public.profiles;
 drop policy if exists "Allow individual insert access" on public.profiles;
 drop policy if exists "Allow individual update access" on public.profiles;
 -- Policies
+drop policy if exists "Allow admin full access on profiles" on public.profiles; -- Added this line
 create policy "Allow admin full access on profiles" on public.profiles
   for all using (public.get_my_role() = 'admin');
 create policy "Allow users to read all profiles" on public.profiles
   for select using (true);
+drop policy if exists "Allow users to update their own profile" on public.profiles; -- Added this line
 create policy "Allow users to update their own profile" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 -- Note: Insert is handled by trigger/function usually, but admins might need it.
@@ -52,13 +54,21 @@ create policy "Allow operators to manage their own record" on public.operators
 alter table public.listings enable row level security;
 -- Remove existing policies if they conflict (adjust names if needed)
 -- Policies
+drop policy if exists "Allow admin full access on listings" on public.listings; -- Added drop
 create policy "Allow admin full access on listings" on public.listings
   for all using (public.get_my_role() = 'admin');
--- Ensure comma is present in the IN clause below
-create policy "Allow moderators read/update access on listings" on public.listings
-  for select, update using (public.get_my_role() in ('admin', 'moderator')); -- Fixed comma
+-- Split moderator access into separate read and update policies
+drop policy if exists "Allow moderators read/update access on listings" on public.listings; -- Remove old combined policy
+drop policy if exists "Allow moderators read access on listings" on public.listings; -- Add drop for new policy
+create policy "Allow moderators read access on listings" on public.listings
+  for select using (public.get_my_role() in ('admin', 'moderator'));
+drop policy if exists "Allow moderators update access on listings" on public.listings; -- Add drop for new policy
+create policy "Allow moderators update access on listings" on public.listings
+  for update using (public.get_my_role() in ('admin', 'moderator'));
+drop policy if exists "Allow public read access on active listings" on public.listings; -- Added drop
 create policy "Allow public read access on active listings" on public.listings
   for select using (status = 'active'); -- Adjust status value if needed
+drop policy if exists "Allow users/operators to manage their own listings" on public.listings; -- Added drop
 create policy "Allow users/operators to manage their own listings" on public.listings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id); -- Assuming user_id links listings to creators
 
@@ -69,14 +79,24 @@ alter table public.reviews enable row level security;
 -- Policies
 create policy "Allow admin full access on reviews" on public.reviews
   for all using (public.get_my_role() = 'admin');
-create policy "Allow moderators read/delete access on reviews" on public.reviews
-  for select, delete using (public.get_my_role() in ('admin', 'moderator')); -- Fixed comma
+drop policy if exists "Allow moderators read/delete access on reviews" on public.reviews; -- Remove old combined policy
+drop policy if exists "Allow moderators read access on reviews" on public.reviews; -- Add drop for new policy
+create policy "Allow moderators read access on reviews" on public.reviews
+  for select using (public.get_my_role() in ('admin', 'moderator'));
+drop policy if exists "Allow moderators delete access on reviews" on public.reviews; -- Add drop for new policy
+create policy "Allow moderators delete access on reviews" on public.reviews
+  for delete using (public.get_my_role() in ('admin', 'moderator'));
 create policy "Allow public read access on reviews" on public.reviews
   for select using (true);
 create policy "Allow users to insert their own reviews" on public.reviews
   for insert with check (auth.uid() = user_id);
-create policy "Allow users to update/delete their own reviews" on public.reviews
-  for update, delete using (auth.uid() = user_id); -- Fixed comma (assuming this was also an error)
+drop policy if exists "Allow users to update/delete their own reviews" on public.reviews; -- Remove old combined policy
+drop policy if exists "Allow users to update their own reviews" on public.reviews; -- Add drop for new policy
+create policy "Allow users to update their own reviews" on public.reviews
+  for update using (auth.uid() = user_id);
+drop policy if exists "Allow users to delete their own reviews" on public.reviews; -- Add drop for new policy
+create policy "Allow users to delete their own reviews" on public.reviews
+  for delete using (auth.uid() = user_id);
 
 -- == FLAGGED CONTENT ==
 -- Enable RLS
@@ -88,8 +108,14 @@ drop policy if exists "Allow admin/moderator update access" on public.flagged_co
 -- Policies
 create policy "Allow admin full access on flagged_content" on public.flagged_content
   for all using (public.get_my_role() = 'admin');
-create policy "Allow moderators read/update access on flagged_content" on public.flagged_content
-  for select, update using (public.get_my_role() in ('admin', 'moderator')); -- Fixed comma
+drop policy if exists "Allow moderators read/update access on flagged_content" on public.flagged_content; -- Remove old combined policy
+drop policy if exists "Allow moderators read access on flagged_content" on public.flagged_content; -- Add drop for new policy
+create policy "Allow moderators read access on flagged_content" on public.flagged_content
+  for select using (public.get_my_role() in ('admin', 'moderator'));
+drop policy if exists "Allow moderators update access on flagged_content" on public.flagged_content; -- Add drop for new policy
+create policy "Allow moderators update access on flagged_content" on public.flagged_content
+  for update using (public.get_my_role() in ('admin', 'moderator'));
+drop policy if exists "Allow authenticated users to insert flags" on public.flagged_content; -- Added drop
 create policy "Allow authenticated users to insert flags" on public.flagged_content
   for insert with check (auth.role() = 'authenticated'); -- Check if reported_by_user_id should match auth.uid()
 

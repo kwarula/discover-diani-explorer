@@ -25,19 +25,26 @@ const AdminHeader: React.FC = () => {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-4 dark:bg-gray-800 dark:border-gray-700">
-      {/* Left Side: Logo/AppName & Optional Search */}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6 dark:border-gray-700"> {/* Use bg-background, add padding */}
+      {/* Left Side: Mobile Sidebar Toggle (Optional) & Breadcrumbs/Title */}
       <div className="flex items-center gap-4">
-        <Link to="/admin" className="text-lg font-semibold text-gray-800 dark:text-white">
-          Discover Diani Admin
-        </Link>
-        {/* Optional Global Search */}
-        {/* <div className="relative ml-4 hidden md:block">
+        {/* Placeholder for potential mobile sidebar toggle */}
+        {/* <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle navigation menu</span>
+        </Button> */}
+        {/* We can add Breadcrumbs here later if needed */}
+        <div className="hidden md:block">
+          {/* Title can be dynamic based on page later */}
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+        </div>
+        {/* Optional Global Search - Keep commented for now */}
+        {/* <div className="relative ml-auto flex-1 md:grow-0">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search operators, listings..."
-            className="pl-8 sm:w-[300px] md:w-[200px] lg:w-[300px]"
+            placeholder="Search..."
+            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
           />
         </div> */}
       </div>
@@ -45,7 +52,7 @@ const AdminHeader: React.FC = () => {
       {/* Right Side: Notifications & User Menu */}
       <div className="flex items-center gap-4">
         {/* Notifications Button */}
-        <Button variant="ghost" size="icon" className="rounded-full">
+        <Button variant="outline" size="icon" className="rounded-full"> {/* Changed variant */}
           <Bell className="h-5 w-5" />
           <span className="sr-only">Toggle notifications</span>
           {/* TODO: Add badge for unread notifications */}
@@ -54,7 +61,7 @@ const AdminHeader: React.FC = () => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="secondary" size="icon" className="rounded-full"> {/* Changed variant */}
               <Avatar className="h-8 w-8">
                 {/* TODO: Add actual user avatar source */}
                 <AvatarImage src="/placeholder-user.jpg" alt="@vinnieqruz" />

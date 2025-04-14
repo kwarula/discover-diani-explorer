@@ -22,13 +22,13 @@ const handleLogout = () => {
 };
 
 const navItems = [
-  { to: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { to: '/admin/operators', label: 'Operators', icon: Users },
-  { to: '/admin/listings', label: 'Listings', icon: Building },
-  { to: '/admin/users', label: 'Users', icon: User },
-  { to: '/admin/moderation', label: 'Moderation', icon: ShieldAlert },
-  { to: '/admin/poi', label: 'Points of Interest', icon: MapPin }, // Add POI nav item
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart },
+  { to: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard }, // Added /dashboard
+  { to: '/admin/dashboard/operators', label: 'Operators', icon: Users }, // Added /dashboard
+  { to: '/admin/dashboard/listings', label: 'Listings', icon: Building }, // Added /dashboard
+  { to: '/admin/dashboard/users', label: 'Users', icon: User }, // Added /dashboard
+  { to: '/admin/dashboard/moderation', label: 'Moderation', icon: ShieldAlert }, // Added /dashboard
+  { to: '/admin/dashboard/points-of-interest', label: 'Points of Interest', icon: MapPin }, // Added /dashboard and updated path
+  { to: '/admin/dashboard/analytics', label: 'Analytics', icon: BarChart }, // Added /dashboard
   // { to: '/admin/settings', label: 'Settings', icon: Settings }, // Optional
 ];
 
@@ -36,8 +36,14 @@ const AdminSidebar: React.FC = () => {
   const location = useLocation();
 
   return (
-    <aside className="hidden w-64 flex-col border-r bg-white p-4 dark:bg-gray-800 dark:border-gray-700 md:flex">
-      <nav className="flex flex-col gap-2 flex-1">
+    <aside className="hidden w-64 flex-col border-r bg-background p-4 dark:border-gray-700 md:flex">
+      {/* Sidebar Header/Logo */}
+      <div className="mb-6 flex h-16 items-center justify-center border-b dark:border-gray-700">
+        <h2 className="text-xl font-semibold text-primary">Admin Panel</h2>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex flex-col gap-1 flex-1"> {/* Reduced gap */}
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -45,8 +51,8 @@ const AdminSidebar: React.FC = () => {
             end={item.to === '/admin'} // Ensure exact match for Overview
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-50',
-                isActive && 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-50'
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground', // Adjusted styling
+                isActive && 'bg-accent text-accent-foreground' // Simplified active state
               )
             }
           >
@@ -56,10 +62,10 @@ const AdminSidebar: React.FC = () => {
         ))}
       </nav>
       {/* Logout Button */}
-      <div className="mt-auto">
+      <div className="mt-auto border-t pt-4 dark:border-gray-700"> {/* Added border */}
         <Button
           variant="ghost"
-          className="flex w-full items-center justify-start gap-3 rounded-lg px-3 py-2 text-gray-600 transition-all hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-50"
+          className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" // Adjusted styling
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4" />

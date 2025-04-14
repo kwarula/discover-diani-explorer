@@ -40,13 +40,36 @@ interface AddOperatorFormProps {
   onCancel: () => void;
 }
 
-// Placeholder mutation function - Replace with actual Supabase RPC call
+// Actual Supabase function call
 const addOperatorMutationFn = async (formData: AddOperatorFormValues) => {
-  console.warn("Placeholder: Simulating add operator backend call.");
-  console.log("Form Data:", formData);
-  // ** Placeholder Logic - Requires secure backend implementation **
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return { success: true, operatorId: crypto.randomUUID() };
+  // Ensure we are sending the correct payload expected by the Edge Function
+  const payload = {
+    business_name: formData.business_name,
+    business_type: formData.business_type,
+    contact_person_name: formData.contact_person_name,
+    contact_email: formData.contact_email,
+    contact_phone: formData.contact_phone || null, // Send null if empty, matching potential DB constraints
+  };
+
+  console.log("Invoking create-operator-with-user with payload:", payload);
+
+  const { data, error } = await supabase.functions.invoke('create-operator-with-user', {
+    body: payload, // Send the structured payload
+  });
+
+  if (error) {
+    console.error("Error adding operator via function:", error);
+    // Throw the error so react-query's onError can handle it and display a toast
+    throw new Error(error.message || 'An unexpected error occurred while creating the operator.');
+  }
+
+  console.log("Operator creation function returned:", data);
+  // Assuming the function returns { success: true, operatorId: '...' } or similar on success
+  // Or throws an error handled above if something went wrong inside the function
+  if (!data || (data && data.error)) { // Handle potential errors returned in the data object
+      throw new Error(data?.error?.message || 'Operator creation failed in the backend function.');
+  }
+  return data; // Return the success data
 };
 
 
@@ -69,8 +92,8 @@ const AddOperatorForm: React.FC<AddOperatorFormProps> = ({ onSuccess, onCancel }
   const mutation = useMutation({
     mutationFn: addOperatorMutationFn,
     onSuccess: (data) => {
-      console.log("Placeholder success data:", data);
-      toast.success("Operator added successfully (Placeholder).");
+      console.log("Operator creation success data:", data); // Updated log message
+      toast.success("Operator added successfully."); // Removed placeholder text
       reset(); // Clear the form
       onSuccess(); // Call the onSuccess callback (e.g., close sheet)
     },

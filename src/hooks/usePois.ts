@@ -1,128 +1,154 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { PointOfInterest } from '@/types/database';
+import { Tables } from '@/types/database'; // Import Tables type
 
 // Define the shape of the hook's return value
 interface UsePoisReturn {
-  pois: PointOfInterest[];
+  pois: Tables<'points_of_interest'>[]; // Use Tables type
   loading: boolean;
   error: string | null;
   refetch: () => void; // Function to manually refetch data
 }
 
-const usePois = (): UsePoisReturn => {
-  const [pois, setPois] = useState<PointOfInterest[]>([]);
+// Define the parameters for the hook
+interface UsePoisParams {
+  searchQuery?: string | null;
+  category?: string | null;
+  location?: string | null; // Keep for potential future use (e.g., distance filtering)
+  currentTime?: string | null; // Optional: Current time in 'HH:MM:SS' format for time-based filtering
+  requiredTags?: string[] | null; // Optional: Tags to filter by when using currentTime
+}
+
+// Update hook signature to accept new filters including time and tags
+const usePois = (
+  {
+    searchQuery,
+    category,
+    location,
+    currentTime,
+    requiredTags,
+  }: UsePoisParams = {}
+): UsePoisReturn => {
+  const [pois, setPois] = useState<Tables<'points_of_interest'>[]>([]); // Use Tables type
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPois = async () => {
+  // Use useCallback to memoize fetchPois based on filters
+  const fetchPois = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     // Create an abort controller for the timeout
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      abortController.abort();
-    }, 10000); // 10 second timeout
-    
-    try {
-      // Explicitly select columns to match the type definition
-      const poiColumns = `
-        id, access_notes, best_visit_time, category, created_at, description,
-        entrance_fee, featured, guide_required, history, image_urls, images,
-        latitude, longitude, name, significance, updated_at
-      `;
-      
-      // Limit query to just 5 featured POIs to improve initial load performance
-      const { data, error: dbError } = await supabase
-        .from('points_of_interest')
-        .select(poiColumns)
-        .eq('featured', true)
-        .order('name')
-        .limit(5);
+    const timeoutId = setTimeout(() => abortController.abort(), 20000); // 20 second timeout
 
-      clearTimeout(timeoutId);
-      
+    try {
+      let data: Tables<'points_of_interest'>[] | null = null;
+      let dbError: any = null;
+
+      if (currentTime) {
+        // --- Use RPC function for time-based filtering ---
+        console.log(`Fetching POIs using RPC with time: ${currentTime}, tags: ${requiredTags}`);
+        const rpcParams = {
+          current_time_input: currentTime,
+          required_tags: requiredTags || null, // Pass null if undefined/null
+        };
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_relevant_pois', rpcParams)
+          .abortSignal(abortController.signal); // Pass signal to RPC call
+
+        data = rpcData;
+        dbError = rpcError;
+        // Note: Ordering might need to be done client-side or by modifying the RPC function itself.
+
+      } else {
+        // --- Use standard select query for non-time-based filtering ---
+        console.log(`Fetching POIs using SELECT with category: ${category}, search: ${searchQuery}`);
+        // Explicitly select columns including new ones
+        const poiColumns = `
+          id, name, description, category, latitude, longitude, history, access_notes,
+          guide_required, image_urls, created_at, opening_time, closing_time, activity_tags
+        `; // Added new columns
+
+        let query = supabase
+          .from('points_of_interest')
+          .select(poiColumns)
+          .abortSignal(abortController.signal); // Pass signal to select call
+
+        // Apply standard filters
+        if (category && category !== 'all') {
+          query = query.eq('category', category);
+        }
+        if (searchQuery) {
+          // Simple search on name and description.
+          query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+        }
+        // Note: Location filtering is not implemented here.
+
+        // Fetch data based on constructed query
+        const { data: selectData, error: selectError } = await query.order('name'); // Order results by name
+
+        data = selectData;
+        dbError = selectError;
+      }
+
+      clearTimeout(timeoutId); // Clear timeout if fetch completes/errors before timeout
+
+      // Handle potential errors or timeouts
       if (abortController.signal.aborted) {
+        console.error("POI fetch aborted (timeout)");
         throw new Error("Request timed out");
       }
-      
       if (dbError) {
         console.error("Supabase POI fetch error:", dbError);
         throw dbError;
       }
 
-      // Use type assertion as type inference might be unreliable
-      setPois((data as PointOfInterest[]) || []);
+      // Set state with fetched data
+      setPois(data || []);
 
     } catch (err: any) {
-      console.error("Error fetching POIs:", err);
-      
+      console.error("Error in fetchPois:", err);
+      // Set specific error messages
       if (err.message === "Request timed out") {
-        setError("Request timed out. Please try again later.");
+        setError("Fetching points of interest timed out. Please try again.");
       } else if (err.message?.includes("Failed to fetch")) {
-        setError("Network error. Please check your connection.");
+        setError("Network error. Could not fetch points of interest.");
       } else {
-        setError(err.message || "Failed to load points of interest.");
+        setError(err.message || "An unknown error occurred while fetching points of interest.");
       }
-      
-      // Provide fallback data for development - can be removed in production
-      if (import.meta.env.DEV) {
-        setPois([
-          {
-            id: 'fallback-1',
-            name: 'Diani Beach',
-            category: 'beach',
-            featured: true,
-            latitude: -4.2767,
-            longitude: 39.5867,
-            description: 'Beautiful white sand beach',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as PointOfInterest,
-          {
-            id: 'fallback-2',
-            name: 'Kongo River',
-            category: 'natural_feature',
-            featured: true,
-            latitude: -4.3106,
-            longitude: 39.5780,
-            description: 'Scenic river with wildlife',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          } as PointOfInterest
-        ]);
-      } else {
-        setPois([]); // Clear data on error in production
-      }
+      setPois([]); // Clear POIs on error
     } finally {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId); // Ensure timeout is cleared
       setLoading(false);
     }
-  };
+  }, [searchQuery, category, location, currentTime, requiredTags]); // Include currentTime and requiredTags in dependencies
 
   useEffect(() => {
-    fetchPois();
-    
-    // Subscribe to realtime changes on the points_of_interest table
-    const poiSubscription = supabase
-      .channel('public:points_of_interest')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'points_of_interest' 
-      }, () => {
-        // Refetch data when the table changes
-        fetchPois();
-      })
-      .subscribe();
-    
-    // Cleanup subscription
-    return () => {
-      supabase.removeChannel(poiSubscription);
-    };
-  }, []); // Fetch on initial mount
+    fetchPois(); // Initial fetch
 
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('public:points_of_interest')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'points_of_interest' },
+        (payload) => {
+          console.log('Realtime POI change received!', payload);
+          // Refetch data when the table changes, using the memoized fetchPois
+          // which already captures the current filter/time/tag state.
+          fetchPois();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on component unmount or when filters change
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPois]); // useEffect depends on the memoized fetchPois
+
+  // Return state and the refetch function
   return { pois, loading, error, refetch: fetchPois };
 };
 

@@ -1,11 +1,15 @@
-// Defines the structure for User data used in the admin dashboard
+// Defines the structure for user data fetched for the admin dashboard
 
-// Reverted: Removed role and status to match current implementation state
+// Matches the return type of the get_admin_users() Supabase function
 export type User = {
-  id: string; // UUID from Supabase auth.users or profiles
-  full_name: string | null; // From profiles table
-  email: string | null; // From auth.users table (currently placeholder)
-  // role: 'user' | 'admin' | 'moderator'; // Removed
-  // status: 'active' | 'suspended' | 'banned'; // Removed
-  created_at: string; // Timestamp string from auth.users or profiles
+  id: string; // uuid from profiles/auth.users
+  full_name: string | null; // from profiles
+  email: string | null; // from auth.users
+  role: 'user' | 'admin' | 'moderator' | string | null; // from profiles (allow string for flexibility)
+  status: 'active' | 'suspended' | 'banned' | string | null; // from profiles (allow string for flexibility)
+  created_at: string; // timestamptz from profiles or auth.users
 };
+
+// Define specific types for roles and statuses if needed elsewhere
+export type UserRole = 'user' | 'admin' | 'moderator';
+export type UserStatus = 'active' | 'suspended' | 'banned';

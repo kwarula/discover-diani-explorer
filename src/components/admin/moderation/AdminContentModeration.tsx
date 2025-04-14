@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import ModerationConfirmDialog from './ModerationConfirmDialog';
 import { fetchFlaggedContent, updateFlagStatus, removeContent } from './moderationService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Import Select
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 // Define possible statuses for actions/filtering
 type ModerationStatus = 'Pending' | 'Resolved' | 'Dismissed'; // Added Dismissed to match filter
@@ -163,10 +164,16 @@ const AdminContentModeration: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Content Moderation</h1>
+      {/* Removed h1 title */}
 
-      {/* Filters */}
-      <div className="flex items-center py-4 gap-2">
+      <Card className="border border-border/50"> {/* Wrap content in a Card */}
+        <CardHeader>
+          <CardTitle>Manage Flagged Content</CardTitle>
+          {/* Optional: Add description here */}
+        </CardHeader>
+        <CardContent className="space-y-4"> {/* Add spacing inside card content */}
+          {/* Filters */}
+          <div className="flex items-center gap-2"> {/* Removed py-4 */}
          {/* Type Filter */}
          <Select
            value={(isLoading || isError) ? '' : (moderationTable.getColumn('content_type')?.getFilterValue() as string) ?? 'all'}
@@ -231,8 +238,10 @@ const AdminContentModeration: React.FC = () => {
       ) : (
         <DataTable columns={memoizedColumns} table={moderationTable} />
       )}
+        </CardContent>
+      </Card>
 
-      {/* Action Dialogs */}
+      {/* Action Dialogs (remain outside card) */}
       <ModerationConfirmDialog
         isOpen={dialogState.isOpen && ['approve', 'remove'].includes(dialogState.actionType || '')}
         actionType={dialogState.actionType}

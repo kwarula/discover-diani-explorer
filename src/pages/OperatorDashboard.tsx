@@ -3,7 +3,17 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/auth';
-import { OperatorStatus } from '@/types/database'; // Import the OperatorStatus type
+// Removed incorrect import of OperatorStatus
+
+// Define possible operator statuses as string literals
+const OPERATOR_STATUS = {
+  PENDING_VERIFICATION: 'pending_verification', // Adjust these values based on actual statuses used in your DB
+  NEEDS_INFO: 'needs_info',
+  VERIFIED: 'verified',
+  REJECTED: 'rejected',
+} as const;
+
+type OperatorStatusValue = typeof OPERATOR_STATUS[keyof typeof OPERATOR_STATUS];
 
 // Since this is a read-only file, I'm creating a wrapper component to fix the type issues
 // This component will be imported in the App.tsx file instead of the original OperatorDashboard
@@ -28,14 +38,17 @@ const OperatorDashboardWrapper: React.FC = () => {
     enabled: !!user
   });
 
-  // Type guard to ensure operator.status is treated as OperatorStatus
-  const getStatus = (): OperatorStatus => {
-    if (!operator) return OperatorStatus.PENDING_VERIFICATION;
-    return operator.status as OperatorStatus;
+  // Function to get the status string, defaulting if necessary
+  const getStatus = (): OperatorStatusValue => {
+    // Default to pending if operator data isn't loaded or status is missing/invalid
+    if (!operator || !operator.status || !Object.values(OPERATOR_STATUS).includes(operator.status)) {
+      return OPERATOR_STATUS.PENDING_VERIFICATION;
+    }
+    return operator.status as OperatorStatusValue;
   };
 
-  // Use this function to safely compare statuses
-  const isStatus = (status: OperatorStatus): boolean => {
+  // Use this function to safely compare statuses using the defined string literals
+  const isStatus = (status: OperatorStatusValue): boolean => {
     return getStatus() === status;
   };
 
@@ -44,19 +57,20 @@ const OperatorDashboardWrapper: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  if (isStatus(OperatorStatus.REJECTED)) {
+  // Use the defined string constants for comparison
+  if (isStatus(OPERATOR_STATUS.REJECTED)) {
     return <div>Your application has been rejected</div>;
   }
 
-  if (isStatus(OperatorStatus.NEEDS_INFO)) {
+  if (isStatus(OPERATOR_STATUS.NEEDS_INFO)) {
     return <div>We need more information</div>;
   }
 
-  if (isStatus(OperatorStatus.PENDING_VERIFICATION)) {
+  if (isStatus(OPERATOR_STATUS.PENDING_VERIFICATION)) {
     return <div>Your application is pending verification</div>;
   }
 
-  if (isStatus(OperatorStatus.VERIFIED)) {
+  if (isStatus(OPERATOR_STATUS.VERIFIED)) {
     return <div>You are verified!</div>;
   }
 

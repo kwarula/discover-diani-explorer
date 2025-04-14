@@ -14,6 +14,7 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [operatorStatus, setOperatorStatus] = useState<OperatorCheckStatus>('idle');
   const [dbStatus, setDbStatus] = useState<DatabaseStatus>('unknown');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   
   // Add a timeout to detect long loading times
   useEffect(() => {
@@ -43,6 +44,70 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       checkHealth();
     }
   }, [loadingTimeout, dbStatus]);
+
+  // Function to attempt profile creation
+  const createProfile = async () => {
+    if (!user || isCreatingProfile) return;
+    
+    try {
+      setIsCreatingProfile(true);
+      
+      // Create initial profile with default fields
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData?.user) {
+        toast.error('Could not get user data');
+        return;
+      }
+      
+      const initialProfileData = {
+        id: user.id,
+        full_name: userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || 'User',
+        username: null,
+        avatar_url: null,
+        bio: null,
+        is_tourist: true,
+        dietary_preferences: [],
+        interests: [],
+        stay_duration: null,
+        role: 'user',
+        status: 'active'
+      };
+      
+      // Try to insert profile
+      const { error } = await supabase
+        .from('profiles')
+        .insert([initialProfileData]);
+      
+      if (error) {
+        if (error.code === '23505') { // Unique violation - profile exists
+          toast.info('Profile already exists. Refreshing...');
+          window.location.reload();
+        } else if (error.message?.includes('violates row-level security policy')) {
+          // If RLS error, try simpler structure
+          const { error: simpleError } = await supabase
+            .from('profiles')
+            .insert([{ id: user.id, full_name: initialProfileData.full_name }]);
+          
+          if (simpleError) {
+            toast.error('Could not create profile due to permission issues');
+          } else {
+            toast.success('Profile created successfully');
+            window.location.reload();
+          }
+        } else {
+          toast.error(`Profile creation failed: ${error.message}`);
+        }
+      } else {
+        toast.success('Profile created successfully');
+        window.location.reload();
+      }
+    } catch (err: any) {
+      toast.error(`Unexpected error: ${err.message}`);
+    } finally {
+      setIsCreatingProfile(false);
+    }
+  };
 
   useEffect(() => {
     // Reset check status if user logs out or auth starts loading again
@@ -80,15 +145,17 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }, [user, isAuthLoading, operatorStatus]); // Rerun if user/loading changes, or if status resets to idle
 
   // --- Loading States ---
-  // Still waiting for initial auth check OR waiting for operator check
-  if (isAuthLoading || operatorStatus === 'checking' || (user && operatorStatus === 'idle')) {
+  // Still waiting for initial auth check OR waiting for operator check or profile creation
+  if (isAuthLoading || isCreatingProfile || operatorStatus === 'checking' || (user && operatorStatus === 'idle')) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-4">
         <Loader2 className="h-8 w-8 animate-spin text-ocean mb-4" />
-        <p className="text-ocean text-center mb-2">Loading your account information...</p>
+        <p className="text-ocean text-center mb-2">
+          {isCreatingProfile ? 'Creating your profile...' : 'Loading your account information...'}
+        </p>
         
         {/* Show extra information if loading takes too long */}
-        {loadingTimeout && (
+        {loadingTimeout && !isCreatingProfile && (
           <div className="mt-4 max-w-md">
             {dbStatus === 'error' ? (
               <div className="bg-red-50 p-4 rounded-md border border-red-200">
@@ -137,17 +204,17 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         </p>
         <div className="flex gap-3">
           <button
+            onClick={createProfile}
+            className="px-4 py-2 bg-ocean text-white rounded hover:bg-ocean-dark"
+          >
+            Create Profile
+          </button>
+          <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
           >
             Reload Page
           </button>
-          <a 
-            href="/support" 
-            className="px-4 py-2 bg-ocean text-white rounded hover:bg-ocean-dark"
-          >
-            Contact Support
-          </a>
         </div>
       </div>
     );

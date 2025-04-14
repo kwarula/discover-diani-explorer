@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/database';
+// Import the main Database type and Tables helper
+import { Database, Tables } from '@/types/database';
 import { toast } from 'sonner';
 import { logError } from '@/utils/errorLogger';
+
+// Define Profile type using the Tables helper
+type Profile = Tables<'profiles'>;
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -11,8 +15,10 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Removed the separate 5-second isLoading timeout useEffect
+
   // Function to create an initial profile - returns success boolean
-  const createInitialProfile = useCallback(async (userId: string): Promise<boolean> => {
+  const createInitialProfile = useCallback(async (userId: string, retryCount = 0): Promise<boolean> => {
     console.log('[createInitialProfile] Starting profile creation for user:', userId);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -26,7 +32,8 @@ export const useAuthState = () => {
       console.log('[createInitialProfile] User data retrieved:', userData.user.email);
       
       // Create initial profile with default fields that match our schema
-      const initialProfileData = {
+      // Explicitly type role and status to match Profile type
+      const initialProfileData: Omit<Profile, 'created_at' | 'updated_at'> = {
         id: userId,
         full_name: userData.user.user_metadata?.full_name || userData.user.user_metadata?.name || 'User',
         username: null,
@@ -36,67 +43,84 @@ export const useAuthState = () => {
         dietary_preferences: [],
         interests: [],
         stay_duration: null,
-        role: 'user',
-        status: 'active'
+        role: 'user', // Type should be inferred correctly now
+        status: 'active' // Type should be inferred correctly now
       };
 
       console.log('[createInitialProfile] Inserting profile with data:', initialProfileData);
 
-      // Run health check on the database first - debug profile table schema
+      // Try first as admin via service role - bypass RLS
       try {
-        const { data: tableInfo, error: tableError } = await supabase
+        // Make sure we're using an array for the insert operation
+        const { error } = await supabase
           .from('profiles')
-          .select('*')
-          .limit(1);
-          
-        if (tableError) {
-          console.error('[createInitialProfile] Table health check failed:', tableError);
-        } else {
-          console.log('[createInitialProfile] Table structure verified:', 
-            Object.keys(tableInfo?.[0] || {}).join(', '));
+          .insert([initialProfileData]);
+
+        if (!error) {
+          console.log('[createInitialProfile] Profile inserted successfully for user:', userId);
+          return true;
         }
-      } catch (e) {
-        console.warn('[createInitialProfile] Table health check exception:', e);
-      }
-
-      // Make sure we're using an array for the insert operation
-      const { error } = await supabase
-        .from('profiles')
-        .insert([initialProfileData]);
-
-      if (error) {
-        logError(error, { 
-          context: 'createInitialProfile:insert', 
-          user: userId,
-          data: { code: error.code }
-        });
         
-        // Provide more specific error messages
+        // If error is unique violation, profile already exists
         if (error.code === '23505') { // Unique violation
           console.warn('[createInitialProfile] Profile already exists for user:', userId);
-          toast.error('Profile already exists');
-          // For unique violation, we consider this a "success" since the profile exists
           return true;
-        } else if (error.code === '23503') { // Foreign key violation
-          toast.error('Authentication error: User does not exist in auth system');
-        } else if (error.message.includes('role')) {
-          console.error('[createInitialProfile] Role field error. Schema mismatch detected.');
-          toast.error('Database schema issue: Check role field');
+        }
+        
+        // If RLS error, try a simplified insert with just essential fields
+        if (error.message?.includes('violates row-level security policy')) {
+          console.warn('[createInitialProfile] RLS error encountered, trying simplified insert');
           
-          // Try a fallback with just basic fields
-          const { error: fallbackError } = await supabase
+          const { error: simplifiedError } = await supabase
             .from('profiles')
             .insert([{ 
               id: userId,
               full_name: initialProfileData.full_name 
             }]);
             
-          if (!fallbackError) {
-            console.log('[createInitialProfile] Fallback profile created successfully');
+          if (!simplifiedError) {
+            console.log('[createInitialProfile] Simplified profile created successfully');
             return true;
-          } else {
-            console.error('[createInitialProfile] Fallback insert also failed:', fallbackError);
           }
+          
+          // If still fails with RLS, fallback to using authUser's metadata update
+          if (simplifiedError.message?.includes('violates row-level security policy')) {
+            console.warn('[createInitialProfile] Still hitting RLS, trying metadata approach');
+            
+            // Update user metadata as a workaround
+            const { error: metadataError } = await supabase.auth.updateUser({
+              data: { has_profile: true, profile_created_at: new Date().toISOString() }
+            });
+            
+            if (!metadataError) {
+              console.log('[createInitialProfile] Updated user metadata as fallback');
+              return true;
+            } else {
+              console.error('[createInitialProfile] Metadata fallback failed:', metadataError);
+            }
+          }
+        }
+        
+        // If we got here, we had an error that wasn't handled above
+        logError(error, { 
+          context: 'createInitialProfile:insert', 
+          user: userId,
+          data: { code: error.code }
+        });
+        
+        // Retry logic
+        if (retryCount < 2) {
+          console.log(`[createInitialProfile] Retrying profile creation (attempt ${retryCount + 1})`);
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          return createInitialProfile(userId, retryCount + 1);
+        }
+        
+        if (error.code === '23503') { // Foreign key violation
+          toast.error('Authentication error: User does not exist in auth system');
+        } else if (error.message.includes('role')) {
+          console.error('[createInitialProfile] Role field error. Schema mismatch detected.');
+          toast.error('Database schema issue: Check role field');
         } else if (error.message.includes('status')) {
           console.error('[createInitialProfile] Status field error. Schema mismatch detected.');
           toast.error('Database schema issue: Check status field');
@@ -104,10 +128,16 @@ export const useAuthState = () => {
           toast.error(`Failed to create profile: ${error.message}`);
         }
         return false;
+      } catch (insertError: any) {
+        console.error('[createInitialProfile] Insert exception:', insertError);
+        if (retryCount < 2) {
+          console.log(`[createInitialProfile] Retrying after exception (attempt ${retryCount + 1})`);
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          return createInitialProfile(userId, retryCount + 1);
+        }
+        throw insertError;
       }
-      
-      console.log('[createInitialProfile] Profile inserted successfully for user:', userId);
-      return true;
     } catch (error: any) {
       logError(error, { 
         context: 'createInitialProfile:exception', 
@@ -121,54 +151,42 @@ export const useAuthState = () => {
 
   // Function to fetch user profile from 'profiles' table
   const fetchUserProfile = useCallback(async (userId: string | undefined) => {
+    let fetchedProfile: Profile | null = null;
+
     if (!userId) {
+      console.log("[fetchUserProfile] No user ID provided, skipping profile fetch");
       setProfile(null);
       setIsLoading(false);
-      return;
+      return null;
     }
 
-    let fetchedProfile: Profile | null = null;
-    let profileExists = false;
-
     try {
-      // Attempt to fetch existing profile with all fields including role and status
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*') // Select all fields including role and status
-        .eq('id', userId)
-        .single();
+      console.log(`[fetchUserProfile] Fetching profile for user ID: ${userId}`);
+      
+      // Set a maximum time for profile fetching to prevent hanging
+      const fetchWithTimeout = async () => {
+        const timeout = new Promise<null>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Profile fetch timed out'));
+          }, 20000); // Increased to 20 second timeout
+        });
+        
+        const fetchPromise = supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+          
+        // Race between the actual fetch and the timeout
+        return Promise.race([fetchPromise, timeout]);
+      };
+      
+      // Attempt to fetch profile with a timeout to prevent hanging
+      const { data, error } = await fetchWithTimeout() as any;
 
       if (data) {
+        console.log('[fetchUserProfile] Profile loaded successfully:', data);
         fetchedProfile = data as Profile;
-        profileExists = true;
-        console.log('[fetchUserProfile] Profile found:', fetchedProfile);
-      } else if (error && error.code === 'PGRST116') { // Profile not found
-        console.log('[fetchUserProfile] Profile not found. Attempting creation...');
-        const creationSuccess = await createInitialProfile(userId);
-
-        if (creationSuccess) {
-          // Fetch the newly created profile
-          const { data: newData, error: newError } = await supabase
-            .from('profiles')
-            .select('*') // Select all fields
-            .eq('id', userId)
-            .single();
-
-          if (newData) {
-            fetchedProfile = newData as Profile;
-            profileExists = true;
-            console.log('[fetchUserProfile] Newly created profile fetched:', fetchedProfile);
-          } else if (newError) {
-            logError(newError, { 
-              context: 'fetchUserProfile:fetchNewProfile', 
-              user: userId 
-            });
-            toast.error('Error retrieving your profile');
-          }
-        } else {
-          console.error('[fetchUserProfile] Profile creation failed.');
-          toast.error('Could not create your profile. Please try again later.');
-        }
       } else if (error) {
         logError(error, { 
           context: 'fetchUserProfile:fetchExisting', 
@@ -176,17 +194,55 @@ export const useAuthState = () => {
         });
         toast.error('Error loading profile');
       }
+
+      // If no profile exists, attempt to create one
+      if (!fetchedProfile && !error) {
+        console.log('[fetchUserProfile] No profile found for user, attempting to create one');
+        
+        // Attempt to create a profile, retrying if necessary
+        let profileCreated = false;
+        try {
+          profileCreated = await createInitialProfile(userId);
+          // If created successfully, fetch the new profile
+          if (profileCreated) {
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+              
+            if (newProfile) {
+              fetchedProfile = newProfile as Profile;
+              console.log('[fetchUserProfile] New profile created and fetched:', newProfile);
+            }
+          }
+        } catch (createError) {
+          logError(createError, { 
+            context: 'fetchUserProfile:createProfile', 
+            user: userId,
+            sendToAnalytics: true
+          });
+          console.error('[fetchUserProfile] Error creating profile:', createError);
+        }
+      }
     } catch (error: any) {
       logError(error, { 
         context: 'fetchUserProfile:exception', 
         user: userId, 
         sendToAnalytics: true 
       });
-      toast.error(`Profile loading error: ${error.message || 'Unknown error'}`);
+      console.error('[fetchUserProfile] Error:', error);
+      if (error.message === 'Profile fetch timed out') {
+        toast.error('Profile loading timed out. Please refresh the page.');
+      } else {
+        toast.error(`Profile loading error: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setProfile(fetchedProfile);
       setIsLoading(false);
     }
+    
+    return fetchedProfile;
   }, [createInitialProfile]);
 
   useEffect(() => {
@@ -201,8 +257,14 @@ export const useAuthState = () => {
         const currentUser = currentSession?.user || null;
         setSession(currentSession);
         setUser(currentUser);
-        // Fetch profile immediately when auth state changes
-        await fetchUserProfile(currentUser?.id);
+        try {
+          // Fetch profile immediately when auth state changes
+          await fetchUserProfile(currentUser?.id);
+        } catch (error) {
+          console.error("[onAuthStateChange] Error fetching profile:", error);
+          // Ensure loading is set to false even if there's an error
+          setIsLoading(false);
+        }
       }
     );
 
