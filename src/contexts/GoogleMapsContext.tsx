@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useMemo } from 'react';
 import { useJsApiLoader, Libraries } from '@react-google-maps/api';
 
@@ -11,16 +12,29 @@ interface GoogleMapsContextValue {
 const GoogleMapsContext = createContext<GoogleMapsContextValue | undefined>(undefined);
 
 // Define the libraries needed across the application
-// Combine libraries needed by InteractiveMap (marker) and potentially others (maps)
 const libraries = ['maps', 'marker'] as Libraries; 
-const GOOGLE_MAPS_API_KEY = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // Create the provider component
 export const GoogleMapsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Use optional chaining and provide a fallback empty string
+  const GOOGLE_MAPS_API_KEY = import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  // Check if API key is present
+  if (!GOOGLE_MAPS_API_KEY) {
+    console.error("Google Maps API Key (VITE_GOOGLE_MAPS_API_KEY) is missing!");
+    return (
+      <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+        <h2>Configuration Error</h2>
+        <p>Google Maps API Key is missing. Please add VITE_GOOGLE_MAPS_API_KEY to your environment variables.</p>
+      </div>
+    );
+  }
+
+  // Use the hook with the API key
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script', // Consistent ID
+    id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: libraries, // Use the combined libraries
+    libraries: libraries,
   });
 
   // Memoize the context value to prevent unnecessary re-renders
@@ -28,17 +42,6 @@ export const GoogleMapsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     isLoaded,
     loadError,
   }), [isLoaded, loadError]);
-
-  // Basic check for API key presence
-  if (!GOOGLE_MAPS_API_KEY) {
-    console.error("Google Maps API Key (VITE_GOOGLE_MAPS_API_KEY) is missing!");
-    // Optionally render an error message or fallback UI for the whole app section
-    return (
-        <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
-            Error: Google Maps API Key is missing. Maps functionality will be disabled.
-        </div>
-    );
-  }
 
   return (
     <GoogleMapsContext.Provider value={value}>
