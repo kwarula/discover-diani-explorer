@@ -1,84 +1,62 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom'; // Added Link
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Phone, MessageSquare } from 'lucide-react'; // Icons for phone and WhatsApp
-import VerifiedBadge from '@/components/ui/VerifiedBadge';
-import { Operator } from '@/types/database'; // Use the type directly
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MapPin, Phone, Mail, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Operator } from '@/types/supabase';
+import VerifiedBadge from '../ui/VerifiedBadge';
 
-// Define the expected props based on the 'operators' table structure
 interface VerifiedOperatorCardProps {
-  operator: Pick<
-    Operator, // Use Operator type directly
-    | 'id'
-    | 'business_name' // Or contact_person_name if more appropriate
-    | 'logo_url' // Or a dedicated profile picture field
-    | 'contact_phone'
-    | 'service_area_description' // Or operating areas
-    | 'is_verified'
-    | 'specialties' // Could indicate tuk-tuk, moto, car hire etc.
-  >;
-  // Add any other props needed, e.g., for reviews link
+  operator: Operator;
 }
 
 const VerifiedOperatorCard: React.FC<VerifiedOperatorCardProps> = ({ operator }) => {
-  // Basic fallback for avatar if no image
-  const fallbackName = operator.business_name?.substring(0, 2).toUpperCase() || 'OP';
-  const whatsappLink = `https://wa.me/${operator.contact_phone?.replace(/[^0-9]/g, '')}`; // Basic WhatsApp link generation
-
   return (
-    <Link to={`/operator/${operator.id}`} className="block group"> {/* Wrap card in Link */}
-      <Card className="w-full max-w-sm overflow-hidden group-hover:shadow-lg transition-shadow duration-300 h-full flex flex-col"> {/* Added styles */}
-        <CardHeader className="flex flex-row items-start gap-4 space-y-0 bg-muted/50 p-4">
-          <Avatar className="h-16 w-16 border">
-          <AvatarImage src={operator.logo_url ?? undefined} alt={operator.business_name ?? 'Operator'} />
-          <AvatarFallback>{fallbackName}</AvatarFallback>
-        </Avatar>
-        <div className="grid gap-1">
-          <CardTitle className="flex items-center gap-2">
-            {operator.business_name}
-            <VerifiedBadge isVerified={operator.is_verified} />
-          </CardTitle>
-          <CardDescription>
-            {/* Display specialties or business type */}
-            {operator.specialties?.join(', ') || 'Transport Operator'}
-          </CardDescription>
+    <Card className="bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="relative">
+        <img
+          src={operator.cover_photo_url || '/placeholder.jpg'}
+          alt={operator.business_name}
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute top-2 left-2">
+          {operator.is_verified && <VerifiedBadge />}
         </div>
-      </CardHeader>
-      <CardContent className="p-4 grid gap-3 text-sm">
-        {operator.service_area_description && (
-          <div className="font-medium">
-            Operating Areas: <span className="font-normal text-muted-foreground">{operator.service_area_description}</span>
-          </div>
-        )}
-        {operator.contact_phone && (
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-muted-foreground" />
-            <a href={`tel:${operator.contact_phone}`} className="text-blue-600 hover:underline">
-              {operator.contact_phone}
-            </a>
-            {/* Basic WhatsApp link - consider country code logic */}
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto text-green-600 hover:text-green-700"
-              aria-label="Contact via WhatsApp"
-            >
-              <MessageSquare className="h-5 w-5" />
-            </a>
-          </div>
-        )}
-        {/* Placeholder for Reviews/Ratings */}
-        {/* <div className="text-muted-foreground">Reviews: (Coming Soon)</div> */}
-         <div className="mt-auto pt-2 text-right text-sm text-ocean group-hover:underline">
-            View Profile &rarr;
-         </div>
+      </div>
+      <CardContent className="p-4">
+        <h3 className="font-semibold text-lg mb-2">{operator.business_name}</h3>
+        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{operator.description}</p>
+        <div className="flex items-center text-gray-500 text-xs mb-2">
+          <MapPin className="mr-1 h-4 w-4" />
+          <span>{operator.address_city}, {operator.address_country}</span>
+        </div>
+        <div className="flex items-center text-gray-500 text-xs mb-2">
+          <Star className="mr-1 h-4 w-4 text-yellow-500" />
+          <span>4.5 (123 reviews)</span> {/* Replace with actual rating */}
+        </div>
+        <Badge className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">
+          {operator.business_type}
+        </Badge>
       </CardContent>
-      {/* Optional CardFooter for actions like 'Book Now' (future) */}
+      <CardFooter className="flex justify-between items-center p-4">
+        <div className="flex flex-col items-start">
+          <a href={`tel:${operator.contact_phone}`} className="text-ocean hover:text-ocean-dark text-sm flex items-center">
+            <Phone className="mr-1 h-4 w-4" />
+            {operator.contact_phone}
+          </a>
+          <a href={`mailto:${operator.contact_email}`} className="text-ocean hover:text-ocean-dark text-sm flex items-center">
+            <Mail className="mr-1 h-4 w-4" />
+            {operator.contact_email}
+          </a>
+        </div>
+        <Button asChild>
+          <Link to={`/operators/${operator.id}`}>
+            View Details
+          </Link>
+        </Button>
+      </CardFooter>
     </Card>
-    </Link>
   );
 };
 

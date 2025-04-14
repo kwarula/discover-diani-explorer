@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
-import { PointOfInterest } from '@/types/database';
+import { PointOfInterest } from '@/types/supabase';
 import { useNavigate } from 'react-router-dom';
 
 interface PoiCardProps {

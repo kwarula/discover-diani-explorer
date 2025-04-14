@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth';
 import { supabase, checkSupabaseHealth } from '@/integrations/supabase/client';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { UserRole, UserStatus } from '@/types/supabase';
 
 type OperatorCheckStatus = 'idle' | 'checking' | 'exists' | 'not_exists' | 'error';
 type DatabaseStatus = 'unknown' | 'healthy' | 'error';
@@ -16,12 +17,11 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   
-  // Add a timeout to detect long loading times
   useEffect(() => {
     if (isAuthLoading) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
-      }, 5000); // 5 seconds timeout
+      }, 5000);
       
       return () => clearTimeout(timer);
     } else {
@@ -29,7 +29,6 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   }, [isAuthLoading]);
   
-  // Check database health if loading takes too long
   useEffect(() => {
     if (loadingTimeout && dbStatus === 'unknown') {
       const checkHealth = async () => {
@@ -45,14 +44,12 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   }, [loadingTimeout, dbStatus]);
 
-  // Function to attempt profile creation
   const createProfile = async () => {
     if (!user || isCreatingProfile) return;
     
     try {
       setIsCreatingProfile(true);
       
-      // Create initial profile with default fields
       const { data: userData } = await supabase.auth.getUser();
       
       if (!userData?.user) {
@@ -70,24 +67,27 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         dietary_preferences: [],
         interests: [],
         stay_duration: null,
-        role: 'user',
-        status: 'active'
+        role: 'user' as UserRole,
+        status: 'active' as UserStatus
       };
       
-      // Try to insert profile
       const { error } = await supabase
         .from('profiles')
-        .insert([initialProfileData]);
+        .insert(initialProfileData);
       
       if (error) {
-        if (error.code === '23505') { // Unique violation - profile exists
+        if (error.code === '23505') {
           toast.info('Profile already exists. Refreshing...');
           window.location.reload();
         } else if (error.message?.includes('violates row-level security policy')) {
-          // If RLS error, try simpler structure
           const { error: simpleError } = await supabase
             .from('profiles')
-            .insert([{ id: user.id, full_name: initialProfileData.full_name }]);
+            .insert({ 
+              id: user.id, 
+              full_name: initialProfileData.full_name,
+              role: initialProfileData.role,
+              status: initialProfileData.status 
+            });
           
           if (simpleError) {
             toast.error('Could not create profile due to permission issues');
@@ -110,24 +110,22 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   };
 
   useEffect(() => {
-    // Reset check status if user logs out or auth starts loading again
     if (isAuthLoading || !user) {
       setOperatorStatus('idle');
       return;
     }
 
-    // Only run check if user is loaded and status is idle
     if (user && operatorStatus === 'idle') {
       setOperatorStatus('checking');
       const checkOperator = async () => {
         try {
           const { data, error } = await supabase
             .from('operators')
-            .select('id') // Check only for existence
+            .select('id')
             .eq('user_id', user.id)
             .maybeSingle() as any;
 
-          if (error && error.code !== 'PGRST116') { // Ignore "0 rows" error from maybeSingle
+          if (error && error.code !== 'PGRST116') {
             console.error("AuthRequired: Error checking operator status", error);
             setOperatorStatus('error');
           } else if (data) {
@@ -142,10 +140,8 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       };
       checkOperator();
     }
-  }, [user, isAuthLoading, operatorStatus]); // Rerun if user/loading changes, or if status resets to idle
+  }, [user, isAuthLoading, operatorStatus]);
 
-  // --- Loading States ---
-  // Still waiting for initial auth check OR waiting for operator check or profile creation
   if (isAuthLoading || isCreatingProfile || operatorStatus === 'checking' || (user && operatorStatus === 'idle')) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-4">
@@ -154,7 +150,6 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           {isCreatingProfile ? 'Creating your profile...' : 'Loading your account information...'}
         </p>
         
-        {/* Show extra information if loading takes too long */}
         {loadingTimeout && !isCreatingProfile && (
           <div className="mt-4 max-w-md">
             {dbStatus === 'error' ? (
@@ -192,8 +187,7 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       </div>
     );
   }
-  
-  // User is authenticated but profile is missing
+
   if (user && !profile && !isAuthLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-4">
@@ -221,7 +215,6 @@ const AuthRequired: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }
 
   if (!user) {
-    // Redirect to login page, but save the current location they were trying to access
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

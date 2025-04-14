@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/database'; 
+import { Profile } from '@/types/supabase'; 
 import { toast } from 'sonner';
 import { Provider } from '@supabase/supabase-js';
 

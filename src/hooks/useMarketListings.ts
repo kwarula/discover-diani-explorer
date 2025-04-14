@@ -1,7 +1,6 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Listing } from '@/types/database'; // Import specific type instead of using Tables<>
+import { Listing } from '@/types/supabase';
 
 // Define the structure of a listing object, potentially joining operator and calculated rating
 export type MarketListing = Listing & {

@@ -83,7 +83,7 @@ const PointsOfInterest = () => {
   };
 
   if (loadError) return <div>Error loading maps</div>;
-  // Fix: Convert error object to string to make it a valid React node
+  // Fix: Convert error object to string for proper rendering
   if (error) return <div>Error fetching POIs: {error.toString()}</div>;
 
   const renderMap = () => {

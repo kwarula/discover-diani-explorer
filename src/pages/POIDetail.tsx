@@ -1,20 +1,18 @@
-// Update beginning of file to fix env access
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Loader } from 'lucide-react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, Calendar, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from 'react-router-dom';
-import { PointOfInterest } from '@/types/database';
-import { usePOI, getCategoryName, getCategoryIcon } from '@/hooks/usePOI';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
+import { Helmet } from 'react-helmet-async';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Share, Calendar, MapPin, Clock, DollarSign, AlertTriangle, ChevronLeft } from 'lucide-react';
+import ImageGallery from '@/components/ImageGallery';
+import { PointOfInterest } from '@/types/supabase';
+import { getCategoryName } from '@/hooks/usePOI';
 
-// Fix: Access environment variable directly
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Added fallback
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 const MAP_CONTAINER_STYLE = {
   height: '400px',
@@ -23,17 +21,18 @@ const MAP_CONTAINER_STYLE = {
 
 const POIDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: poi, isLoading, isError } = usePOI(id);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   useEffect(() => {
-    window.scrollTo(0, 0); // Scroll to top on component mount
+    window.scrollTo(0, 0);
   }, [id]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader className="h-12 w-12 animate-spin" />
+        <Skeleton className="h-12 w-12 animate-pulse" />
       </div>
     );
   }
@@ -55,11 +54,12 @@ const POIDetail: React.FC = () => {
     : poi.description;
 
   const categoryName = getCategoryName(poi.category);
-  const categoryIcon = getCategoryIcon(poi.category);
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navigation />
+      <Helmet>
+        <title>{poi.name} | Point of Interest</title>
+      </Helmet>
 
       <div className="container mx-auto mt-8 px-4 md:px-8 lg:px-12">
         <Card className="shadow-lg rounded-lg overflow-hidden">
@@ -150,7 +150,7 @@ const POIDetail: React.FC = () => {
                 center={{ lat: poi.latitude, lng: poi.longitude }}
                 zoom={15}
               >
-                <Marker position={{ lat: poi.latitude, lng: poi.longitude }} />
+                <MarkerF position={{ lat: poi.latitude, lng: poi.longitude }} />
               </GoogleMap>
             </LoadScript>
           ) : (

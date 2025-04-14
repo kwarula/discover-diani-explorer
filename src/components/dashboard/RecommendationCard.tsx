@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Listing } from '@/types/database';
+import { Listing } from '@/types/supabase';
 import { MapPin, Star } from 'lucide-react';
 
 interface RecommendationCardProps {

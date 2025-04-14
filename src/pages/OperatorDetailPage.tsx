@@ -1,49 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Operator } from '@/types/database';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Badge } from '@/components/ui/badge';
+import { Operator } from '@/types/supabase';
+import { Helmet } from 'react-helmet-async';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Mail, Clock, Star, ArrowLeft, Building, UserCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { MapPin, Phone, Mail, Calendar, Clock, ChevronLeft, Star, MessageCircle, Share2 } from 'lucide-react';
+import ImageGallery from '@/components/ImageGallery';
 import VerifiedBadge from '@/components/ui/VerifiedBadge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
-const OperatorDetailPage: React.FC = () => {
+const OperatorDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [operator, setOperator] = useState<Operator | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchOperator = async () => {
-      if (!id) {
-        setError("Operator ID not found.");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
       try {
-        const { data, error: dbError } = await supabase
+        if (!id) {
+          setError('No operator ID provided');
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
           .from('operators')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (dbError) throw dbError;
-        if (!data) throw new Error("Operator not found.");
+        if (error) {
+          throw error;
+        }
 
-        setOperator(data);
+        if (data) {
+          setOperator(data);
+          
+          // Fetch gallery images
+          const { data: galleryData, error: galleryError } = await supabase
+            .from('operator_gallery_media')
+            .select('media_url')
+            .eq('operator_id', id)
+            .order('sort_order', { ascending: true });
+            
+          if (galleryError) {
+            console.error('Error fetching gallery:', galleryError);
+          } else if (galleryData) {
+            const images = galleryData.map(item => item.media_url);
+            setGalleryImages(images);
+          }
+        }
       } catch (err: any) {
-        console.error("Error fetching operator details:", err);
-        setError(err.message || "Failed to load operator details.");
-        setOperator(null);
+        console.error('Error fetching operator:', err);
+        setError(err.message || 'Failed to load operator details');
       } finally {
         setLoading(false);
       }
@@ -52,172 +67,263 @@ const OperatorDetailPage: React.FC = () => {
     fetchOperator();
   }, [id]);
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: operator?.business_name || 'Operator Details',
+        text: `Check out ${operator?.business_name} on Discover Diani`,
+        url: window.location.href,
+      })
+      .catch((err) => {
+        console.error('Error sharing:', err);
+      });
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => {
+          toast.success('Link copied to clipboard');
+        })
+        .catch((err) => {
+          console.error('Error copying to clipboard:', err);
+          toast.error('Failed to copy link');
+        });
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navigation />
-        <div className="container mx-auto px-4 py-12 flex-grow">
-          <Skeleton className="h-10 w-1/4 mb-4" />
-          <Skeleton className="h-6 w-1/2 mb-8" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-4">
-              <Skeleton className="w-full h-64" />
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-            <div className="md:col-span-1 space-y-4">
-               <Skeleton className="h-12 w-full" />
-               <Skeleton className="h-12 w-full" />
-               <Skeleton className="h-12 w-full" />
-            </div>
-          </div>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center mb-6">
+          <Skeleton className="h-8 w-40" />
         </div>
-        <Footer />
+        <Skeleton className="h-64 w-full rounded-lg mb-6" />
+        <Skeleton className="h-10 w-3/4 mb-4" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-4 w-2/3" />
       </div>
     );
   }
 
   if (error || !operator) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navigation />
-        <div className="container mx-auto px-4 py-12 flex-grow text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Operator Profile</h2>
-          <p className="text-gray-600 mb-6">{error || "The requested operator could not be found."}</p>
-          <Button asChild variant="outline">
-            <Link to="/explore">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+      <div className="container mx-auto py-8 px-4">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+          <h2 className="text-red-800 font-medium">Error</h2>
+          <p className="text-red-600">{error || 'Operator not found'}</p>
+          <Button variant="outline" className="mt-4" asChild>
+            <Link to="/operators">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Operators
             </Link>
           </Button>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const coverPhotoUrl = operator.cover_photo_url || '/placeholder.svg';
-  const logoUrl = operator.logo_url || undefined;
-  const fallbackName = operator.business_name?.substring(0, 2).toUpperCase() || 'OP';
+  // Prepare images array for gallery
+  const allImages = [
+    ...(operator.cover_photo_url ? [operator.cover_photo_url] : []),
+    ...galleryImages
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navigation />
-      <div className="container mx-auto px-4 py-12 flex-grow">
-        <div className="mb-6">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/transportation">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Transportation
+    <>
+      <Helmet>
+        <title>{operator.business_name} | Discover Diani</title>
+        <meta name="description" content={operator.description || `Details about ${operator.business_name}`} />
+      </Helmet>
+
+      <div className="container mx-auto py-8 px-4">
+        {/* Back button and actions */}
+        <div className="flex justify-between items-center mb-6">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/operators">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Operators
             </Link>
           </Button>
-        </div>
-
-        <div className="relative mb-8">
-          <AspectRatio ratio={16 / 5} className="bg-muted rounded-lg overflow-hidden">
-            <img src={coverPhotoUrl} alt={`${operator.business_name} cover photo`} className="object-cover w-full h-full" />
-          </AspectRatio>
-          <div className="absolute bottom-0 left-8 transform translate-y-1/2">
-            <Avatar className="h-24 w-24 border-4 border-background bg-background">
-              <AvatarImage src={logoUrl} alt={operator.business_name ?? 'Operator Logo'} />
-              <AvatarFallback className="text-xl">{fallbackName}</AvatarFallback>
-            </Avatar>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              <Share2 className="mr-2 h-4 w-4" />
+              Share
+            </Button>
+            <Button variant="outline" size="sm">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Contact
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-16">
-          <div className="md:col-span-2 space-y-6">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-ocean-dark">{operator.business_name}</h1>
-              <VerifiedBadge isVerified={operator.is_verified} />
+        {/* Main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left column - Gallery and details */}
+          <div className="lg:col-span-2">
+            {/* Image gallery */}
+            <div className="mb-6">
+              <ImageGallery 
+                images={allImages.length > 0 ? allImages : ['/placeholder-business.jpg']} 
+                className="aspect-video"
+              />
             </div>
 
-            {operator.business_type && <Badge variant="outline">{operator.business_type}</Badge>}
-
-            {operator.specialties && operator.specialties.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {operator.specialties.map(spec => <Badge key={spec} variant="secondary">{spec}</Badge>)}
-              </div>
-            )}
-
-            {operator.description && (
-              <div className="prose max-w-none pt-4 border-t">
-                <h2 className="text-2xl font-semibold mb-3">About {operator.business_name}</h2>
-                <p>{operator.description}</p>
-              </div>
-            )}
-
-            {operator.key_offerings && operator.key_offerings.length > 0 && (
-              <div className="pt-4 border-t">
-                <h3 className="text-xl font-semibold mb-2">Key Offerings</h3>
-                <ul className="list-disc list-inside text-gray-700 space-y-1">
-                  {operator.key_offerings.map((offering, index) => <li key={index}>{offering}</li>)}
-                </ul>
-              </div>
-            )}
-
-            {/* TODO: Add Operator's Listings Section */}
-            {/* <div className="pt-4 border-t">
-              <h3 className="text-xl font-semibold mb-2">Listings by this Operator</h3>
-              ... Fetch and display listings where user_id matches operator.user_id ...
-            </div> */}
-
-            {/* TODO: Add Operator Reviews Section if applicable */}
-            {/* <div className="pt-6 border-t">
-              <ReviewList reviews={reviews} isLoading={reviewLoading} error={reviewError} />
-            </div> */}
-            {/* TODO: Add Operator Review Form if applicable */}
-
+            {/* Tabs for details, services, reviews */}
+            <Tabs defaultValue="about" className="mt-6">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="services">Services</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="about" className="mt-4">
+                <h2 className="text-xl font-semibold mb-3">About {operator.business_name}</h2>
+                <p className="text-gray-700 mb-6">{operator.description || 'No description provided.'}</p>
+                
+                {operator.key_offerings && operator.key_offerings.length > 0 && (
+                  <>
+                    <h3 className="text-lg font-medium mb-2">Key Offerings</h3>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {operator.key_offerings.map((offering, index) => (
+                        <Badge key={index} variant="secondary">{offering}</Badge>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                {operator.specialties && operator.specialties.length > 0 && (
+                  <>
+                    <h3 className="text-lg font-medium mb-2">Specialties</h3>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {operator.specialties.map((specialty, index) => (
+                        <Badge key={index} variant="outline">{specialty}</Badge>
+                      ))}
+                    </div>
+                  </>
+                )}
+                
+                <h3 className="text-lg font-medium mb-2">Service Area</h3>
+                <p className="text-gray-700 mb-6">{operator.service_area_description || 'Diani Beach area'}</p>
+              </TabsContent>
+              
+              <TabsContent value="services" className="mt-4">
+                <h2 className="text-xl font-semibold mb-3">Services</h2>
+                {operator.categories && operator.categories.length > 0 ? (
+                  <div className="space-y-4">
+                    {operator.categories.map((category, index) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <h3 className="font-medium">{category}</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {operator.price_range ? `Price range: ${operator.price_range}` : 'Contact for pricing'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600">No specific services listed. Please contact the operator for details.</p>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="reviews" className="mt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Reviews</h2>
+                  <Button size="sm">Write a Review</Button>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <p className="text-gray-600">No reviews yet. Be the first to review {operator.business_name}!</p>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          <div className="md:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle>Contact & Info</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {operator.contact_person_name && (
-                  <div className="flex items-center gap-2">
-                    <UserCheck size={16} className="text-muted-foreground" />
-                    <span>Contact: {operator.contact_person_name}</span>
-                  </div>
+          {/* Right column - Contact info */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg border p-6 sticky top-24">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">{operator.business_name}</h2>
+                {operator.is_verified && <VerifiedBadge />}
+              </div>
+              
+              <div className="flex items-center mb-2">
+                <Badge variant="outline">{operator.business_type}</Badge>
+                {operator.status === 'active' && (
+                  <Badge variant="secondary" className="ml-2">Active</Badge>
                 )}
-                {operator.contact_phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-muted-foreground" />
-                    <a href={`tel:${operator.contact_phone}`} className="text-ocean hover:underline">{operator.contact_phone}</a>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Location</p>
+                    <p className="text-sm text-gray-600">
+                      {[
+                        operator.address_street,
+                        operator.address_area,
+                        operator.address_city,
+                        operator.address_country
+                      ].filter(Boolean).join(', ') || 'Diani Beach, Kenya'}
+                    </p>
                   </div>
-                )}
-                {operator.contact_email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={16} className="text-muted-foreground" />
-                    <a href={`mailto:${operator.contact_email}`} className="text-ocean hover:underline">{operator.contact_email}</a>
+                </div>
+                
+                <div className="flex items-start">
+                  <Phone className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <a href={`tel:${operator.contact_phone}`} className="text-sm text-blue-600 hover:underline">
+                      {operator.contact_phone}
+                    </a>
                   </div>
-                )}
-                {operator.address_area && (
-                  <div className="flex items-start gap-2">
-                    <MapPin size={16} className="text-muted-foreground mt-0.5" />
-                    <span>{operator.address_street && `${operator.address_street}, `}{operator.address_area}</span>
+                </div>
+                
+                <div className="flex items-start">
+                  <Mail className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <a href={`mailto:${operator.contact_email}`} className="text-sm text-blue-600 hover:underline">
+                      {operator.contact_email}
+                    </a>
                   </div>
-                )}
-                {operator.operating_hours && (
-                  <div className="flex items-start gap-2">
-                    <Clock size={16} className="text-muted-foreground mt-0.5" />
-                    <span className="whitespace-pre-line">{String(operator.operating_hours)}</span>
+                </div>
+                
+                <div className="flex items-start">
+                  <Clock className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Operating Hours</p>
+                    <p className="text-sm text-gray-600">
+                      {operator.operating_hours ? 
+                        'Custom hours (see details)' : 
+                        'Contact for availability'}
+                    </p>
                   </div>
-                )}
-                {operator.service_area_description && (
-                  <div className="flex items-start gap-2 pt-2 border-t">
-                    <Building size={16} className="text-muted-foreground mt-0.5" />
-                    <span>Service Area: {operator.service_area_description}</span>
+                </div>
+                
+                <div className="flex items-start">
+                  <Calendar className="h-5 w-5 text-gray-500 mr-3 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Member Since</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(operator.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long'
+                      })}
+                    </p>
                   </div>
-                )}
-                {/* TODO: Add Map if coordinates exist */}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <Button className="w-full">Contact Now</Button>
+            </div>
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
+    </>
   );
 };
 

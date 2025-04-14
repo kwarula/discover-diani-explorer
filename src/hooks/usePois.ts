@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/database'; // Import Tables type
+import { PointOfInterest } from '@/types/supabase'; // Updated import
 
 // Define the shape of the hook's return value
 interface UsePoisReturn {
-  pois: Tables<'points_of_interest'>[]; // Use Tables type
+  pois: PointOfInterest[]; // Updated type
   loading: boolean;
   error: string | null;
   refetch: () => void; // Function to manually refetch data
@@ -29,7 +30,7 @@ const usePois = (
     requiredTags,
   }: UsePoisParams = {}
 ): UsePoisReturn => {
-  const [pois, setPois] = useState<Tables<'points_of_interest'>[]>([]); // Use Tables type
+  const [pois, setPois] = useState<PointOfInterest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,37 +44,28 @@ const usePois = (
     const timeoutId = setTimeout(() => abortController.abort(), 20000); // 20 second timeout
 
     try {
-      let data: Tables<'points_of_interest'>[] | null = null;
+      let data: PointOfInterest[] | null = null;
       let dbError: any = null;
 
       if (currentTime) {
-        // --- Use RPC function for time-based filtering ---
-        console.log(`Fetching POIs using RPC with time: ${currentTime}, tags: ${requiredTags}`);
-        const rpcParams = {
-          current_time_input: currentTime,
-          required_tags: requiredTags || null, // Pass null if undefined/null
-        };
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_relevant_pois', rpcParams)
-          .abortSignal(abortController.signal); // Pass signal to RPC call
+        // Since the RPC function is not available, we'll use a standard query instead
+        console.log(`Fetching POIs with time filtering - fallback to standard query`);
+        
+        const { data: selectData, error: selectError } = await supabase
+          .from('points_of_interest')
+          .select('*') // Select all POIs for now
+          .abortSignal(abortController.signal);
 
-        data = rpcData;
-        dbError = rpcError;
-        // Note: Ordering might need to be done client-side or by modifying the RPC function itself.
-
+        data = selectData;
+        dbError = selectError;
       } else {
         // --- Use standard select query for non-time-based filtering ---
         console.log(`Fetching POIs using SELECT with category: ${category}, search: ${searchQuery}`);
-        // Explicitly select columns including new ones
-        const poiColumns = `
-          id, name, description, category, latitude, longitude, history, access_notes,
-          guide_required, image_urls, created_at, opening_time, closing_time, activity_tags
-        `; // Added new columns
-
+        // Select all columns
         let query = supabase
           .from('points_of_interest')
-          .select(poiColumns)
-          .abortSignal(abortController.signal); // Pass signal to select call
+          .select()
+          .abortSignal(abortController.signal);
 
         // Apply standard filters
         if (category && category !== 'all') {
@@ -83,10 +75,9 @@ const usePois = (
           // Simple search on name and description.
           query = query.or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
         }
-        // Note: Location filtering is not implemented here.
 
         // Fetch data based on constructed query
-        const { data: selectData, error: selectError } = await query.order('name'); // Order results by name
+        const { data: selectData, error: selectError } = await query.order('name');
 
         data = selectData;
         dbError = selectError;
@@ -135,8 +126,7 @@ const usePois = (
         { event: '*', schema: 'public', table: 'points_of_interest' },
         (payload) => {
           console.log('Realtime POI change received!', payload);
-          // Refetch data when the table changes, using the memoized fetchPois
-          // which already captures the current filter/time/tag state.
+          // Refetch data when the table changes
           fetchPois();
         }
       )

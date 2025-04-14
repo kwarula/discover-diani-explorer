@@ -17,7 +17,7 @@ import {
   DollarSign,
   UserCheck
 } from 'lucide-react';
-import { PointOfInterest } from '@/types/database';
+import { PointOfInterest } from '@/types/supabase';
 import { getCategoryName } from '@/hooks/usePOI';
 
 const getCategoryIcon = (category: string) => {

@@ -1,5 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { PointOfInterest } from '@/types/database';
+import { PointOfInterest } from '@/types/supabase';
 import { UserProfile } from './types';
 
 export const fetchFeaturedPOIs = async (): Promise<{ data: PointOfInterest[] | null; error: any }> => {
