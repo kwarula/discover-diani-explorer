@@ -325,8 +325,10 @@ export type Database = {
       points_of_interest: {
         Row: {
           access_notes: string | null
+          activity_tags: string[] | null
           best_visit_time: string | null
           category: string
+          closing_time: string | null
           created_at: string
           description: string
           entrance_fee: string | null
@@ -339,13 +341,16 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          opening_time: string | null
           significance: string | null
           updated_at: string
         }
         Insert: {
           access_notes?: string | null
+          activity_tags?: string[] | null
           best_visit_time?: string | null
           category: string
+          closing_time?: string | null
           created_at?: string
           description: string
           entrance_fee?: string | null
@@ -358,13 +363,16 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          opening_time?: string | null
           significance?: string | null
           updated_at?: string
         }
         Update: {
           access_notes?: string | null
+          activity_tags?: string[] | null
           best_visit_time?: string | null
           category?: string
+          closing_time?: string | null
           created_at?: string
           description?: string
           entrance_fee?: string | null
@@ -377,6 +385,7 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          opening_time?: string | null
           significance?: string | null
           updated_at?: string
         }
@@ -386,7 +395,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
-          created_at: string
+          created_at: string | null
           dietary_preferences: string[] | null
           full_name: string | null
           id: string
@@ -395,13 +404,13 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           status: Database["public"]["Enums"]["user_status"]
           stay_duration: number | null
-          updated_at: string
+          updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
-          created_at?: string
+          created_at?: string | null
           dietary_preferences?: string[] | null
           full_name?: string | null
           id: string
@@ -410,13 +419,13 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
           stay_duration?: number | null
-          updated_at?: string
+          updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
-          created_at?: string
+          created_at?: string | null
           dietary_preferences?: string[] | null
           full_name?: string | null
           id?: string
@@ -425,7 +434,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           status?: Database["public"]["Enums"]["user_status"]
           stay_duration?: number | null
-          updated_at?: string
+          updated_at?: string | null
           username?: string | null
         }
         Relationships: []
@@ -511,59 +520,103 @@ export type Database = {
           user_id: string | null
           wildlife_notice: string | null
         }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          featured?: boolean | null
-          guide_recommended?: boolean | null
-          id?: string | null
-          images?: string[] | null
-          is_verified?: boolean | null
-          location?: string | null
-          operator_name?: never
-          price?: number | null
-          price_range?: string | null
-          price_unit?: string | null
-          status?: string | null
-          sub_category?: string | null
-          tide_dependency?: string | null
-          title?: string | null
-          transport_instructions?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          wildlife_notice?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          featured?: boolean | null
-          guide_recommended?: boolean | null
-          id?: string | null
-          images?: string[] | null
-          is_verified?: boolean | null
-          location?: string | null
-          operator_name?: never
-          price?: number | null
-          price_range?: string | null
-          price_unit?: string | null
-          status?: string | null
-          sub_category?: string | null
-          tide_dependency?: string | null
-          title?: string | null
-          transport_instructions?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          wildlife_notice?: string | null
-        }
         Relationships: []
       }
     }
     Functions: {
+      exec_sql: {
+        Args: { query: string }
+        Returns: undefined
+      }
+      get_admin_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          full_name: string
+          email: string
+          role: string
+          status: string
+          created_at: string
+        }[]
+      }
+      get_my_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_operator_growth_timeseries: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          day: string
+          count: number
+        }[]
+      }
       get_operator_name: {
         Args: { user_id: string }
         Returns: string
+      }
+      get_relevant_pois: {
+        Args: { current_time_input: string; required_tags?: string[] }
+        Returns: {
+          access_notes: string | null
+          activity_tags: string[] | null
+          best_visit_time: string | null
+          category: string
+          closing_time: string | null
+          created_at: string
+          description: string
+          entrance_fee: string | null
+          featured: boolean | null
+          guide_required: boolean | null
+          history: string | null
+          id: string
+          image_urls: string[] | null
+          images: string[] | null
+          latitude: number
+          longitude: number
+          name: string
+          opening_time: string | null
+          significance: string | null
+          updated_at: string
+        }[]
+      }
+      get_user_signups_timeseries: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          day: string
+          count: number
+        }[]
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {
