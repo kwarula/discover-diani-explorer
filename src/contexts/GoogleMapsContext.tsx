@@ -23,9 +23,24 @@ export const GoogleMapsProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   if (!GOOGLE_MAPS_API_KEY) {
     console.error("Google Maps API Key (VITE_GOOGLE_MAPS_API_KEY) is missing!");
     return (
-      <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+      <div style={{ 
+        padding: '20px', 
+        color: 'red', 
+        textAlign: 'center', 
+        backgroundColor: '#ffeeee', 
+        border: '2px solid red', 
+        borderRadius: '8px' 
+      }}>
         <h2>Configuration Error</h2>
         <p>Google Maps API Key is missing. Please add VITE_GOOGLE_MAPS_API_KEY to your environment variables.</p>
+        <p>Steps to resolve:</p>
+        <ol>
+          <li>Go to Google Cloud Console</li>
+          <li>Create a new project or select an existing one</li>
+          <li>Enable Google Maps JavaScript API</li>
+          <li>Create credentials (API key)</li>
+          <li>Add the key to your .env file as VITE_GOOGLE_MAPS_API_KEY</li>
+        </ol>
       </div>
     );
   }
