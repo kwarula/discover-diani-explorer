@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PointOfInterest, POICategory } from '@/types/supabase';
@@ -95,7 +96,7 @@ export const getCategoryName = (category: string): string => {
       return 'Natural Feature';
     case 'cultural_site':
       return 'Cultural Site';
-     case 'conservation_site':
+    case 'conservation_site':
       return 'Conservation Site';
     case 'viewpoint':
       return 'Viewpoint';
@@ -106,22 +107,22 @@ export const getCategoryName = (category: string): string => {
   }
 };
 
-// Helper function to get category icon (you can expand this as needed)
-export const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'historical_site':
-        return <span role="img" aria-label="historical site">🏛️</span>;
-      case 'natural_feature':
-        return <span role="img" aria-label="natural feature">🏞️</span>;
-      case 'cultural_site':
-        return <span role="img" aria-label="cultural site">🎭</span>;
-      case 'conservation_site':
-        return <span role="img" aria-label="conservation site">🌿</span>;
-      case 'viewpoint':
-        return <span role="img" aria-label="viewpoint">⛰️</span>;
-      case 'beach_area':
-        return <span role="img" aria-label="beach area">🏖️</span>;
-      default:
-        return <span role="img" aria-label="point of interest">📍</span>;
-    }
-  };
+// Helper function to get category icon
+export const getCategoryIcon = (category: string): JSX.Element => {
+  switch (category) {
+    case 'historical_site':
+      return <span role="img" aria-label="historical site">🏛️</span>;
+    case 'natural_feature':
+      return <span role="img" aria-label="natural feature">🏞️</span>;
+    case 'cultural_site':
+      return <span role="img" aria-label="cultural site">🎭</span>;
+    case 'conservation_site':
+      return <span role="img" aria-label="conservation site">🌿</span>;
+    case 'viewpoint':
+      return <span role="img" aria-label="viewpoint">⛰️</span>;
+    case 'beach_area':
+      return <span role="img" aria-label="beach area">🏖️</span>;
+    default:
+      return <span role="img" aria-label="point of interest">📍</span>;
+  }
+};
